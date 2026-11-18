@@ -59,6 +59,12 @@
   .ask textarea { width: 100%; min-height: 76px; resize: vertical; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: var(--bg); }
   .ask .row { display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
   .ask .hint { color: var(--muted); font-size: 13px; margin-right: auto; }
+  .privacy { margin: 12px 0 0; font-size: 12px; color: var(--muted); }
+  .helpful { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-right: auto; font-size: 13px; }
+  .btn.rate { padding: 4px 10px; font-size: 13px; }
+  .btn.rate[aria-pressed="true"] { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); }
+  .btn:disabled { cursor: default; }
+  .thanks { font-size: 13px; color: var(--brand); }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .chip { border: 1px dashed var(--border); background: transparent; border-radius: 999px; padding: 4px 10px; font-size: 13px; cursor: pointer; color: var(--muted); text-align: left; }
   .chip:hover { color: var(--text); border-style: solid; }
@@ -147,6 +153,7 @@
       <button class="btn primary" type="submit" id="askBtn" data-i18n="ask">Ask</button>
     </div>
     <div class="chips" id="chips" aria-label="Example questions"></div>
+    <p class="privacy" id="privacyNote" hidden data-i18n="privacy"></p>
   </form>
 
   <section id="feed" aria-live="polite" aria-label="Answers"></section>
@@ -192,7 +199,9 @@
       bannerGuide: ' Plus {g} passages from {d} INEC guideline documents.',
       inecGuidance: 'INEC guidance', fromGuidance: 'From INEC guidance', related: 'Related reading (does not settle the question)',
       dated: 'Dated: written for the {basis}', ocr: 'Scanned text, not yet proofread', ocrChecked: 'Scanned text, checked against the page',
-      openPdf: 'Open PDF page', analysisUnreviewed: 'Analysis not yet legally reviewed', current: 'Current'
+      openPdf: 'Open PDF page', analysisUnreviewed: 'Analysis not yet legally reviewed', current: 'Current',
+      helpful: 'Was this helpful?', yes: 'Yes', no: 'No', thanksUp: 'Thanks!', thanksDown: 'Thanks. Tell us what was wrong below (optional).',
+      privacy: 'Questions are recorded anonymously to improve AI Voter Desk. Please don\'t type names, phone numbers or other personal details.'
     },
     pcm: {
       askLabel: 'Ask about voting and di Electoral Act', placeholder: 'e.g. Another person fit collect my PVC for me?',
@@ -209,7 +218,9 @@
       bannerGuide: ' Plus {g} passages from {d} INEC guideline documents.',
       inecGuidance: 'INEC guidance', fromGuidance: 'From INEC guidance', related: 'Tins wey fit help (e no settle di question)',
       dated: 'Old document: dem write am for {basis}', ocr: 'Scanned text, dem never proofread am', ocrChecked: 'Scanned text, dem don check am with di page',
-      openPdf: 'Open di PDF page', analysisUnreviewed: 'Lawyer never review dis analysis', current: 'Current'
+      openPdf: 'Open di PDF page', analysisUnreviewed: 'Lawyer never review dis analysis', current: 'Current',
+      helpful: 'E help you?', yes: 'Yes', no: 'No', thanksUp: 'Thank you!', thanksDown: 'Thank you. Tell us wetin wrong for below (if you like).',
+      privacy: 'We dey keep di questions without your name to make AI Voter Desk better. Abeg no type your name, phone number or any personal tori.'
     }
   };
 
@@ -274,6 +285,8 @@
     if (!q || !q.trim()) return;
     var r = engine.ask(q, { lang: langPref });
     r._idx = results.length;
+    r._qid = uuid();
+    logQuestion(r);
     results.push(r);
     $('feed').appendChild(renderResult(r));
     $('q').value = '';
@@ -341,9 +354,26 @@
       html += '</div></section>';
     });
 
-    html += '<div class="actions"><button type="button" class="btn flagbtn">⚑ ' + esc(t('flag', L)) + '</button></div>';
+    html += '<div class="actions">' +
+      '<span class="helpful" role="group" aria-label="' + esc(t('helpful', L)) + '"><span class="muted">' + esc(t('helpful', L)) + '</span>' +
+      '<button type="button" class="btn rate" data-rating="1" aria-label="' + esc(t('yes', L)) + '">👍 ' + esc(t('yes', L)) + '</button>' +
+      '<button type="button" class="btn rate" data-rating="-1" aria-label="' + esc(t('no', L)) + '">👎 ' + esc(t('no', L)) + '</button></span>' +
+      '<button type="button" class="btn flagbtn">⚑ ' + esc(t('flag', L)) + '</button></div>';
     card.innerHTML = html;
     card.querySelector('.flagbtn').addEventListener('click', function () { openFlagForm(card, r); });
+    card.querySelectorAll('.rate').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var rating = +btn.getAttribute('data-rating');
+        var group = btn.parentNode;
+        group.querySelectorAll('.rate').forEach(function (b) { b.disabled = true; b.setAttribute('aria-pressed', String(b === btn)); });
+        sendFeedback(r, rating);
+        var thanks = document.createElement('span');
+        thanks.className = 'thanks';
+        thanks.textContent = t(rating > 0 ? 'thanksUp' : 'thanksDown', L);
+        group.appendChild(thanks);
+        if (rating < 0) openFlagForm(card, r);
+      });
+    });
     return card;
   }
 
@@ -387,18 +417,41 @@
     return h;
   }
 
-  function sendFlag(rec) {
-    if (!CFG.supabaseUrl || !CFG.supabaseAnonKey) return Promise.resolve(false);
-    var row = {
-      id: rec.id, flagged_at: rec.flaggedAt, category: rec.category, note: rec.note,
-      question: rec.question, lang: rec.lang, type: rec.type, reason: rec.reason,
-      answer: rec.answer, citations: rec.citations, corpus: rec.corpus
-    };
-    return fetch(CFG.supabaseUrl.replace(/\/$/, '') + '/rest/v1/flags', {
+  var SHARED = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
+  function supaInsert(table, row) {
+    if (!SHARED) return Promise.resolve(false);
+    return fetch(CFG.supabaseUrl.replace(/\/$/, '') + '/rest/v1/' + table, {
       method: 'POST',
       headers: supabaseHeaders(CFG.supabaseAnonKey),
       body: JSON.stringify(row)
     }).then(function (res) { return res.ok; }).catch(function () { return false; });
+  }
+  function uuid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var v = Math.random() * 16 | 0; return (c === 'x' ? v : (v & 3 | 8)).toString(16);
+    });
+  }
+  // Anonymous question log: the question and how AIVD answered it. No names, accounts or IPs.
+  function logQuestion(r) {
+    return supaInsert('questions', {
+      id: r._qid, question: r.question.slice(0, 600), lang: r.lang, type: r.type,
+      basis: r.basis || null, reason: r.reason || null,
+      citations: (r.citations || []).concat(r.guidance || []).slice(0, 10).map(function (c) { return c.label; }),
+      corpus: AIVD_META.corpus
+    });
+  }
+  function sendFeedback(r, rating) {
+    return supaInsert('feedback', { question_id: r._qid, rating: rating, question: r.question.slice(0, 600), lang: r.lang, type: r.type });
+  }
+
+  function sendFlag(rec) {
+    if (!SHARED) return Promise.resolve(false);
+    return supaInsert('flags', {
+      id: rec.id, flagged_at: rec.flaggedAt, category: rec.category, note: rec.note,
+      question: rec.question, lang: rec.lang, type: rec.type, reason: rec.reason,
+      answer: rec.answer, citations: rec.citations, corpus: rec.corpus
+    });
   }
 
   function updateCount() { $('queueCount').textContent = (store(FLAG_KEY) || []).length; }
@@ -425,6 +478,7 @@
   var saved = store(LANG_KEY);
   setLang(saved === 'en' || saved === 'pcm' ? saved : 'auto');
   updateCount();
+  $('privacyNote').hidden = !SHARED;
   var qs = new URLSearchParams(location.search).get('q');
   if (qs) ask(qs);
 })();

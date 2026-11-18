@@ -8,7 +8,8 @@
     "eval": "node tests/run.js --verbose",
     "ingest": "python3 scripts/ingest_act.py sources/Electoral-Act-2026.pdf",
     "serve": "python3 -m http.server 8080",
-    "ingest:guidelines": "python3 scripts/ingest_guidelines.py --src-dir sources --download"
+    "ingest:guidelines": "python3 scripts/ingest_guidelines.py --src-dir sources --download",
+    "test:db": "bash supabase/tests/run.sh"
   },
   "license": "UNLICENSED"
 }

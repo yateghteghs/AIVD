@@ -8,7 +8,8 @@ AI Voter Desk answers voter questions in **English and Nigerian Pidgin**. Answer
 - says **"Not covered"** when the loaded provisions don't clearly settle the question, instead of guessing;
 - **refuses** to give voting advice ("who should I vote for?"), make predictions ("who will win?"), or help with manipulation (rigging, vote buying, intimidation, fake results, misinformation), while still answering legal questions about those topics ("is vote buying an offence?");
 - shows a **rule-conflict panel** for Section 47(3): the Act's "cancel and re-run within 24 hours" rule next to the 2026 Regulations' "continue the following day" rule (paras. 26, 65, 66), which one controls, and why;
-- has a **Flag for review** button on every answer. Flags go into a review queue that can be exported as JSON.
+- has **👍/👎** and a **Flag for review** button on every answer;
+- has a **Review Desk** at `/admin` for your team (invite-only), showing usage, unanswered questions, unhelpful answers, refusals and flags to triage. Voters never log in.
 
 > **Status (18 Nov 2026):** `data/provisions.js` holds the **official Electoral Act 2026** (156 sections, 457 records), ingested from INEC's PDF. `data/guidelines.js` holds **216 passages from 5 INEC documents** listed at <https://inecnigeria.org/elections/guidelines>. Three of those documents are scans, so their text came from OCR: the paragraphs used in the conflict panel were checked against the page images, but the rest still need proofreading (see [INEC guidance](#inec-guidance-documents)).
 
@@ -39,6 +40,7 @@ npm test
 ```
 ai4elections-prototype/
 ├── index.html               Web app (single file: UI, review queue, conflict panel)
+├── admin.html               Review Desk for reviewers (/admin): stats, chart, flag triage
 ├── config.js                Runtime settings (Supabase URL/anon key; generated on Vercel)
 ├── engine.js                Answer engine: language detection, guardrails, BM25 retrieval, citations
 ├── data/
@@ -54,7 +56,10 @@ ai4elections-prototype/
 │   ├── guidelines_manifest.json  The INEC documents: URL, year, legal basis, current/dated
 │   ├── build_web.js         Builds dist/ for Vercel and writes config.js from env vars
 │   └── topic_map.json       Keyword → topic tags used by the test set
-├── supabase/schema.sql      flags table + insert-only row-level security
+├── supabase/
+│   ├── schema.sql           1st migration: flags table + insert-only row-level security
+│   ├── 002_dashboard.sql    2nd migration: question log, feedback, reviewers, triage rights
+│   └── tests/run.sh         Runs both migrations on a local PostgreSQL and checks the security rules
 └── tests/
     ├── questions.json       52-question evaluation set
     ├── run.js               Evaluation runner
@@ -85,6 +90,43 @@ The app is a static site. **Vercel** hosts it and redeploys on every push. **Sup
 Never put the **service_role** key anywhere in this project. Only the anon key belongs in Vercel.
 
 `scripts/build_web.js` copies only the browser files (`index.html`, `engine.js`, `data/*.js`) into `dist/` and writes `config.js` from the environment variables, so no keys are committed and tests and scripts are not published.
+
+## Review Desk (admin dashboard)
+
+`/admin` is for your review team only. Voters never see it or log in. It shows:
+
+- totals for the chosen period (7 days, 30 days or all time): questions, % answered / not covered / refused, % in Pidgin, % rated helpful, open flags;
+- questions per day, stacked by outcome (hover for numbers, or "Show as table");
+- the most-asked questions AIVD couldn't answer, which is your to-do list for the corpus;
+- the latest 👎 answers and refusals (check refusals for false positives);
+- flags to triage: set the status (Open / Needs test / Resolved / Won't fix), add a resolution note, and save;
+- a CSV download of the questions.
+
+Open `/admin?demo` to see it with generated sample data, no Supabase needed.
+
+**Privacy.** The voter app logs each question with how it was answered (type, citations, language), plus any 👍/👎 linked by a random ID. It stores no names, accounts or IP addresses, and the page asks voters not to type personal details. The public key can only *add* rows; it can never read them back.
+
+**One-time setup in Supabase** (after the Vercel/Supabase steps under *Deploying*):
+
+1. **SQL Editor → New query**: paste `supabase/002_dashboard.sql` and click **Run**. It is safe to run more than once.
+2. **Authentication → URL Configuration**: set **Site URL** to your Vercel address (e.g. `https://ai-voter-desk.vercel.app`) and add `https://ai-voter-desk.vercel.app/admin` under **Redirect URLs**.
+3. **Authentication → Sign In / Providers**: turn **off** "Allow new users to sign up". Only people you invite get accounts. Even if someone does sign up, they can't see any data unless step 5 adds them.
+4. **Authentication → Users → Invite user**: enter each reviewer's email.
+5. **SQL Editor**: add each invited reviewer to the reviewer list:
+   ```sql
+   insert into public.reviewers (user_id, email)
+   select id, email from auth.users where email = 'reviewer@example.org'
+   on conflict do nothing;
+   ```
+6. The reviewer opens `/admin`, enters their email and clicks the emailed sign-in link.
+
+To remove a reviewer: `delete from public.reviewers where email = '…';`.
+
+Check the security rules locally at any time (needs PostgreSQL installed):
+
+```bash
+bash supabase/tests/run.sh
+```
 
 ## How an answer is produced
 
@@ -187,7 +229,7 @@ The current result is **52/52 on the official Act plus INEC guidance**. The test
 
 ## Review queue
 
-Every flag is saved in the browser's `localStorage` (shown under **Review queue**, exportable as JSON). When Supabase is configured, it is also sent to the shared `flags` table (see Deploying). Each record contains the question, detected language, answer type, citations, the reviewer's category and note, and the corpus version. Use it during user testing.
+Every flag is saved in the browser's `localStorage` (shown under **Review queue**, exportable as JSON). When Supabase is configured, it is also sent to the shared `flags` table and appears in the Review Desk. A 👎 opens the flag form so the voter can say what was wrong. Each record contains the question, detected language, answer type, citations, the reviewer's category and note, and the corpus version. Use it during user testing.
 
 ## Known limitations
 

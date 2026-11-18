@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>AIVD Review Desk</title>
+<style>
+  /* Layout: one column; sign-in card, then summary tiles, chart, and work queues. */
+  :root {
+    --bg: #f6f7f5; --surface: #ffffff; --surface-2: #eef1ec; --text: #17201b; --muted: #5b665f;
+    --border: #d9ded8; --brand: #0b7a4b; --brand-ink: #ffffff; --brand-soft: #e2f2ea;
+    --warn: #8a5a00; --warn-soft: #fff4d6; --danger: #a12b2b; --danger-soft: #fbe5e5;
+    --info: #1e4f8a; --info-soft: #e3edf9; --grid: #e6e9e4;
+    /* chart series: validated categorical slots 1-3 (blue, orange, aqua) */
+    --s-answer: #2a78d6; --s-nc: #eb6834; --s-refused: #1baf7a;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1412; --surface: #171d1a; --surface-2: #1f2723; --text: #e6ece8; --muted: #9aa69f;
+      --border: #2c3631; --brand: #3fbf86; --brand-ink: #062015; --brand-soft: #173326;
+      --warn: #f0c060; --warn-soft: #3a2e12; --danger: #f08a8a; --danger-soft: #3a1c1c;
+      --info: #8fb8f0; --info-soft: #172a42; --grid: #26302b;
+      --s-answer: #3987e5; --s-nc: #d95926; --s-refused: #199e70; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1412; --surface: #171d1a; --surface-2: #1f2723; --text: #e6ece8; --muted: #9aa69f;
+    --border: #2c3631; --brand: #3fbf86; --brand-ink: #062015; --brand-soft: #173326;
+    --warn: #f0c060; --warn-soft: #3a2e12; --danger: #f08a8a; --danger-soft: #3a1c1c;
+    --info: #8fb8f0; --info-soft: #172a42; --grid: #26302b;
+    --s-answer: #3987e5; --s-nc: #d95926; --s-refused: #199e70; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+  header.top { background: var(--surface); border-bottom: 1px solid var(--border); }
+  header.top .wrap { display: flex; align-items: center; gap: 12px; min-height: 58px; flex-wrap: wrap; }
+  .logo { width: 46px; height: 34px; border-radius: 9px; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+  h1 { font-size: 18px; margin: 0; }
+  .brand { display: flex; gap: 10px; align-items: center; margin-right: auto; }
+  .brand small { display: block; color: var(--muted); font-size: 12px; }
+  .btn { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 14px; }
+  .btn:hover { background: var(--surface-2); }
+  .btn.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); font-weight: 600; }
+  .btn:disabled { opacity: .6; cursor: default; }
+  .who { color: var(--muted); font-size: 13px; }
+  main { padding: 16px 0 40px; display: grid; gap: 16px; }
+  main > *, #dash > * { min-width: 0; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; min-width: 0; }
+  .panel h2 { font-size: 15px; margin: 0 0 10px; }
+  .panel p.sub { margin: -6px 0 12px; color: var(--muted); font-size: 13px; }
+  .banner { padding: 10px 14px; border-radius: var(--radius); font-size: 14px; }
+  .banner.warn { background: var(--warn-soft); color: var(--warn); }
+  .banner.info { background: var(--info-soft); color: var(--info); }
+  .banner.err { background: var(--danger-soft); color: var(--danger); }
+  .signin { max-width: 440px; margin: 40px auto; }
+  .signin label { display: block; font-weight: 600; margin-bottom: 6px; }
+  .signin input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); margin-bottom: 10px; }
+  .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+  .seg button { border: 0; background: transparent; padding: 6px 12px; cursor: pointer; font-size: 14px; }
+  .seg button[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); }
+  .spacer { margin-left: auto; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 10px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+  .tile .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .tile .value { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; margin-top: 4px; }
+  .tile .note { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .chart { position: relative; overflow-x: auto; }
+  .chart svg { display: block; }
+  .chart text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.12); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tip b { display: block; margin-bottom: 2px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+  .q { overflow-wrap: anywhere; }
+  .tag { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+  .tag.answer { background: var(--brand-soft); color: var(--brand); }
+  .tag.not_covered { background: var(--info-soft); color: var(--info); }
+  .tag.refused { background: var(--danger-soft); color: var(--danger); }
+  .tag.open { background: var(--warn-soft); color: var(--warn); }
+  .tag.resolved { background: var(--brand-soft); color: var(--brand); }
+  .muted { color: var(--muted); }
+  .empty { color: var(--muted); font-size: 14px; padding: 8px 0; }
+  .flag { border: 1px solid var(--border); border-radius: 10px; padding: 12px; display: grid; gap: 8px; }
+  .flag + .flag { margin-top: 10px; }
+  .flag .meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 13px; }
+  .flag .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .flag select, .flag input { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; background: var(--bg); }
+  .flag input { flex: 1 1 220px; min-width: 0; }
+  .flag details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+  .flag blockquote { margin: 6px 0 0; padding-left: 10px; border-left: 3px solid var(--border); font-size: 13px; overflow-wrap: anywhere; }
+  .saved { font-size: 13px; color: var(--brand); }
+  details.tableview summary { cursor: pointer; font-size: 13px; color: var(--muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">AIVD</div>
+      <div><h1>Review Desk</h1><small>AI Voter Desk · reviewers only</small></div>
+    </div>
+    <span class="who" id="who"></span>
+    <button class="btn" type="button" id="signOut" hidden>Sign out</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <main id="main">
+    <div id="notice" class="banner info" hidden></div>
+
+    <section class="panel signin" id="signinPanel" hidden>
+      <h2>Sign in</h2>
+      <p class="sub">Enter your reviewer email and we'll send you a sign-in link. Only accounts added to the reviewer list can see this dashboard.</p>
+      <form id="signinForm">
+        <label for="email">Email</label>
+        <input id="email" type="email" required autocomplete="email" placeholder="you@example.org">
+        <button class="btn primary" type="submit" id="sendLink">Email me a sign-in link</button>
+      </form>
+      <p class="sub" id="signinMsg" style="margin-top:10px" aria-live="polite"></p>
+    </section>
+
+    <div id="dash" hidden>
+      <div class="filters" role="group" aria-label="Date range">
+        <div class="seg" id="rangeSeg">
+          <button type="button" data-days="7" aria-pressed="true">Last 7 days</button>
+          <button type="button" data-days="30" aria-pressed="false">Last 30 days</button>
+          <button type="button" data-days="0" aria-pressed="false">All time</button>
+        </div>
+        <span class="muted" id="loaded"></span>
+        <button class="btn spacer" type="button" id="refresh">Refresh</button>
+        <button class="btn" type="button" id="csv">Download questions (CSV)</button>
+      </div>
+
+      <section class="tiles" id="tiles" aria-label="Summary" style="margin-top:16px"></section>
+
+      <section class="panel" style="margin-top:16px">
+        <h2>Questions per day</h2>
+        <p class="sub">Stacked by how AI Voter Desk responded.</p>
+        <div class="legend" id="legend"></div>
+        <div class="chart" id="chart"></div>
+        <details class="tableview"><summary>Show as table</summary><div class="scroll" id="chartTable"></div></details>
+      </section>
+
+      <div class="grid2" style="margin-top:16px">
+        <section class="panel">
+          <h2>Most-asked questions AIVD couldn't answer</h2>
+          <p class="sub">"Not covered" questions, grouped. These show what the corpus is missing.</p>
+          <div class="scroll" id="topNc"></div>
+        </section>
+        <section class="panel">
+          <h2>Answers rated unhelpful</h2>
+          <p class="sub">Most recent 👎 ratings.</p>
+          <div class="scroll" id="unhelpful"></div>
+        </section>
+      </div>
+
+      <section class="panel" style="margin-top:16px">
+        <h2>Refusals</h2>
+        <p class="sub">Questions declined by the guardrails. Check these for false refusals.</p>
+        <div class="scroll" id="refusals"></div>
+      </section>
+
+      <section class="panel" style="margin-top:16px">
+        <div class="filters" style="margin-bottom:10px">
+          <h2 style="margin:0">Flags for review</h2>
+          <div class="seg spacer" id="flagSeg" role="group" aria-label="Flag status">
+            <button type="button" data-status="open" aria-pressed="true">Open</button>
+            <button type="button" data-status="needs_test" aria-pressed="false">Needs test</button>
+            <button type="button" data-status="resolved" aria-pressed="false">Resolved</button>
+            <button type="button" data-status="all" aria-pressed="false">All</button>
+          </div>
+        </div>
+        <div id="flags"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script src="config.js"></script>
+<script>
+(function () {
+  'use strict';
+  var CFG = window.AIVD_CONFIG || {};
+  var DEMO = /[?&]demo\b/.test(location.search);
+  var BASE = (CFG.supabaseUrl || '').replace(/\/$/, '');
+  var KEY = CFG.supabaseAnonKey || '';
+  var SESSION_KEY = 'aivd.admin.session';
+  var state = { days: 7, flagStatus: 'open', questions: [], feedback: [], flags: [], email: '' };
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function pct(a, b) { return b ? Math.round(100 * a / b) + '%' : '–'; }
+  function notice(text, kind) { var n = $('notice'); n.hidden = !text; n.className = 'banner ' + (kind || 'info'); n.textContent = text || ''; }
+  function ss(k, v) { try { if (v === undefined) return JSON.parse(sessionStorage.getItem(k)); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
+
+  // ---------------- auth (Supabase GoTrue over fetch; no library) ----------------
+  function readSessionFromUrl() {
+    if (!location.hash || location.hash.length < 2) return null;
+    var h = new URLSearchParams(location.hash.slice(1));
+    history.replaceState(null, '', location.pathname + location.search);
+    if (h.get('error_description')) { notice('Sign-in failed: ' + h.get('error_description').replace(/\+/g, ' '), 'err'); return null; }
+    if (!h.get('access_token')) return null;
+    return { access_token: h.get('access_token'), refresh_token: h.get('refresh_token'),
+             expires_at: Math.floor(Date.now() / 1000) + (+h.get('expires_in') || 3600) };
+  }
+  function authHeaders(token) {
+    var h = { apikey: KEY, 'Content-Type': 'application/json' };
+    h.Authorization = 'Bearer ' + (token || (/^eyJ/.test(KEY) ? KEY : ''));
+    if (!token && !/^eyJ/.test(KEY)) delete h.Authorization;
+    return h;
+  }
+  function refresh(session) {
+    return fetch(BASE + '/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ refresh_token: session.refresh_token })
+    }).then(function (r) { if (!r.ok) throw new Error('refresh'); return r.json(); }).then(function (j) {
+      var s = { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: Math.floor(Date.now() / 1000) + (j.expires_in || 3600) };
+      ss(SESSION_KEY, s); return s;
+    });
+  }
+  function validSession() {
+    var s = ss(SESSION_KEY);
+    if (!s) return Promise.resolve(null);
+    if (s.expires_at - 60 > Date.now() / 1000) return Promise.resolve(s);
+    return refresh(s).catch(function () { ss(SESSION_KEY, null); return null; });
+  }
+  function api(path, opts) {
+    opts = opts || {};
+    return validSession().then(function (s) {
+      if (!s) throw new Error('signed_out');
+      var headers = Object.assign(authHeaders(s.access_token), opts.headers || {});
+      return fetch(BASE + path, { method: opts.method || 'GET', headers: headers, body: opts.body });
+    }).then(function (r) {
+      if (r.status === 401) { ss(SESSION_KEY, null); throw new Error('signed_out'); }
+      if (!r.ok) return r.text().then(function (t) { throw new Error(t || r.statusText); });
+      return r.status === 204 ? null : r.json();
+    });
+  }
+
+  $('signinForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var email = $('email').value.trim();
+    $('sendLink').disabled = true;
+    var redirect = location.origin + location.pathname;
+    fetch(BASE + '/auth/v1/otp?redirect_to=' + encodeURIComponent(redirect), {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ email: email, create_user: false })
+    }).catch(function () {}).then(function () {
+      // Same message either way, so the page doesn't reveal which emails are reviewers.
+      $('signinMsg').textContent = 'If ' + email + ' is a reviewer account, a sign-in link is on its way. Open it on this device.';
+      $('sendLink').disabled = false;
+    });
+  });
+
+  $('signOut').addEventListener('click', function () {
+    var s = ss(SESSION_KEY);
+    if (s && !DEMO) fetch(BASE + '/auth/v1/logout', { method: 'POST', headers: authHeaders(s.access_token) }).catch(function () {});
+    ss(SESSION_KEY, null);
+    location.replace(location.pathname);
+  });
+
+  // ---------------- data ----------------
+  function since() {
+    if (!state.days) return null;
+    var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (state.days - 1));
+    return d.toISOString();
+  }
+  function load() {
+    $('loaded').textContent = 'Loading…';
+    if (DEMO) { var d = demoData(); state.questions = d.questions; state.feedback = d.feedback; state.flags = d.flags; render(); return Promise.resolve(); }
+    var from = since();
+    var range = from ? '&created_at=gte.' + encodeURIComponent(from) : '';
+    return Promise.all([
+      api('/rest/v1/questions?select=id,created_at,question,lang,type,basis,reason,citations&order=created_at.desc&limit=5000' + range),
+      api('/rest/v1/feedback?select=id,created_at,question_id,rating,question,lang,type&order=created_at.desc&limit=5000' + range),
+      api('/rest/v1/flags?select=*&order=created_at.desc&limit=500')
+    ]).then(function (res) {
+      state.questions = res[0]; state.feedback = res[1]; state.flags = res[2];
+      render();
+    }).catch(handleError);
+  }
+  function handleError(err) {
+    if (err && err.message === 'signed_out') { showSignin(); return; }
+    notice('Could not load data: ' + (err && err.message ? err.message : err), 'err');
+    $('loaded').textContent = '';
+  }
+
+  // ---------------- rendering ----------------
+  var SERIES = [
+    { key: 'answer', label: 'Answered', color: 'var(--s-answer)' },
+    { key: 'not_covered', label: 'Not covered', color: 'var(--s-nc)' },
+    { key: 'refused', label: 'Refused', color: 'var(--s-refused)' }
+  ];
+
+  function render() {
+    var q = state.questions, f = state.feedback;
+    $('loaded').textContent = q.length + ' questions loaded' + (q.length >= 5000 ? ' (latest 5,000)' : '');
+    var by = { answer: 0, not_covered: 0, refused: 0 };
+    q.forEach(function (x) { if (by[x.type] != null) by[x.type]++; });
+    var pcm = q.filter(function (x) { return x.lang === 'pcm'; }).length;
+    var up = f.filter(function (x) { return x.rating > 0; }).length, down = f.length - up;
+    var open = state.flags.filter(function (x) { return x.status === 'open'; }).length;
+    var tiles = [
+      ['Questions', q.length.toLocaleString(), state.days ? 'in the last ' + state.days + ' days' : 'all time'],
+      ['Answered', pct(by.answer, q.length), by.answer.toLocaleString() + ' questions'],
+      ['Not covered', pct(by.not_covered, q.length), by.not_covered.toLocaleString() + ' questions'],
+      ['Refused', pct(by.refused, q.length), by.refused.toLocaleString() + ' questions'],
+      ['In Pidgin', pct(pcm, q.length), pcm.toLocaleString() + ' questions'],
+      ['Rated helpful', pct(up, f.length), up + ' 👍 · ' + down + ' 👎'],
+      ['Open flags', String(open), state.flags.length + ' flags in total']
+    ];
+    $('tiles').innerHTML = tiles.map(function (t) {
+      return '<div class="tile"><div class="label">' + esc(t[0]) + '</div><div class="value">' + esc(t[1]) + '</div><div class="note">' + esc(t[2]) + '</div></div>';
+    }).join('');
+    renderChart();
+    renderTopNc();
+    renderUnhelpful();
+    renderRefusals();
+    renderFlags();
+  }
+
+  function dayKey(iso) { var d = new Date(iso); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function dayLabel(k) { var p = k.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); }
+
+  function renderChart() {
+    var counts = {};
+    state.questions.forEach(function (x) {
+      var k = dayKey(x.created_at);
+      counts[k] = counts[k] || { answer: 0, not_covered: 0, refused: 0 };
+      if (counts[k][x.type] != null) counts[k][x.type]++;
+    });
+    // continuous day axis
+    var keys = Object.keys(counts).sort();
+    var days = [];
+    if (keys.length) {
+      var start = state.days ? new Date(since()) : new Date(keys[0] + 'T00:00:00');
+      var end = new Date(); end.setHours(0, 0, 0, 0);
+      for (var d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) days.push(dayKey(d.toISOString()));
+    }
+    $('legend').innerHTML = SERIES.map(function (s) { return '<span><i style="background:' + s.color + '"></i>' + esc(s.label) + '</span>'; }).join('');
+    if (!days.length) { $('chart').innerHTML = '<p class="empty">No questions in this period yet.</p>'; $('chartTable').innerHTML = ''; return; }
+
+    var W = Math.max(560, days.length * 22 + 50, $('chart').clientWidth || 0), H = 220, padL = 36, padR = 8, padT = 10, padB = 26;
+    var max = Math.max(1, Math.max.apply(null, days.map(function (k) { var c = counts[k]; return c ? c.answer + c.not_covered + c.refused : 0; })));
+    var step = niceStep(max), top = Math.ceil(max / step) * step;
+    var plotH = H - padT - padB, plotW = W - padL - padR, bw = Math.max(4, Math.min(28, plotW / days.length - 4));
+    var y = function (v) { return padT + plotH - v / top * plotH; };
+    var svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Questions per day, stacked by outcome">';
+    for (var g = 0; g <= top; g += step) {
+      svg += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(g) + '" y2="' + y(g) + '" stroke="var(--grid)" stroke-width="1"/>';
+      svg += '<text x="' + (padL - 6) + '" y="' + (y(g) + 4) + '" text-anchor="end">' + g + '</text>';
+    }
+    var labelEvery = Math.ceil(days.length / 10);
+    days.forEach(function (k, i) {
+      var c = counts[k] || { answer: 0, not_covered: 0, refused: 0 };
+      var x = padL + (i + 0.5) * (plotW / days.length) - bw / 2, base = 0;
+      var segs = SERIES.filter(function (s) { return c[s.key] > 0; });
+      segs.forEach(function (s, j) {
+        var y0 = y(base), y1 = y(base + c[s.key]);
+        var h = Math.max(1, y0 - y1 - (j < segs.length - 1 ? 2 : 0)); // 2px surface gap between segments
+        var isTop = j === segs.length - 1, r = isTop ? Math.min(4, bw / 2, h) : 0;
+        svg += isTop
+          ? '<path d="M' + x + ',' + (y1 + h) + 'V' + (y1 + r) + 'Q' + x + ',' + y1 + ' ' + (x + r) + ',' + y1 + 'H' + (x + bw - r) + 'Q' + (x + bw) + ',' + y1 + ' ' + (x + bw) + ',' + (y1 + r) + 'V' + (y1 + h) + 'Z" fill="' + s.color + '"/>'
+          : '<rect x="' + x + '" y="' + (y0 - h) + '" width="' + bw + '" height="' + h + '" fill="' + s.color + '"/>';
+        base += c[s.key];
+      });
+      svg += '<rect class="hit" data-k="' + k + '" x="' + (padL + i * (plotW / days.length)) + '" y="' + padT + '" width="' + (plotW / days.length) + '" height="' + plotH + '" fill="transparent"/>';
+      if (i % labelEvery === 0) svg += '<text x="' + (x + bw / 2) + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(dayLabel(k)) + '</text>';
+    });
+    svg += '</svg>';
+    $('chart').innerHTML = svg + '<div class="tip" id="tip" hidden></div>';
+    var tip = $('tip');
+    $('chart').querySelectorAll('.hit').forEach(function (el) {
+      function show(ev) {
+        var k = el.getAttribute('data-k'), c = counts[k] || { answer: 0, not_covered: 0, refused: 0 };
+        tip.innerHTML = '<b>' + esc(dayLabel(k)) + ' · ' + (c.answer + c.not_covered + c.refused) + ' questions</b>' +
+          SERIES.map(function (s) { return '<div><i style="display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:' + s.color + '"></i>' + esc(s.label) + ': ' + c[s.key] + '</div>'; }).join('');
+        tip.hidden = false;
+        var box = $('chart').getBoundingClientRect(), r = el.getBoundingClientRect();
+        var left = r.left - box.left + $('chart').scrollLeft + r.width / 2 + 8;
+        if (left + 170 > $('chart').clientWidth + $('chart').scrollLeft) left -= 186;
+        tip.style.left = left + 'px'; tip.style.top = '10px';
+        el.setAttribute('fill', 'var(--surface-2)'); el.setAttribute('fill-opacity', '0.35');
+      }
+      el.addEventListener('mouseenter', show);
+      el.addEventListener('click', show);
+      el.addEventListener('mouseleave', function () { tip.hidden = true; el.setAttribute('fill', 'transparent'); });
+    });
+    $('chartTable').innerHTML = '<table><thead><tr><th>Day</th>' + SERIES.map(function (s) { return '<th class="num">' + esc(s.label) + '</th>'; }).join('') + '<th class="num">Total</th></tr></thead><tbody>' +
+      days.slice().reverse().map(function (k) {
+        var c = counts[k] || { answer: 0, not_covered: 0, refused: 0 };
+        return '<tr><td>' + esc(dayLabel(k)) + '</td>' + SERIES.map(function (s) { return '<td class="num">' + c[s.key] + '</td>'; }).join('') + '<td class="num">' + (c.answer + c.not_covered + c.refused) + '</td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+  function niceStep(max) {
+    var raw = max / 4, mag = Math.pow(10, Math.floor(Math.log10(raw || 1))), n = raw / mag;
+    return Math.max(1, (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * mag);
+  }
+
+  function norm(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim(); }
+  function renderTopNc() {
+    var groups = {};
+    state.questions.filter(function (x) { return x.type === 'not_covered'; }).forEach(function (x) {
+      var k = norm(x.question);
+      if (!k) return;
+      groups[k] = groups[k] || { text: x.question, n: 0, last: x.created_at, lang: x.lang };
+      groups[k].n++;
+      if (x.created_at > groups[k].last) groups[k].last = x.created_at;
+    });
+    var rows = Object.keys(groups).map(function (k) { return groups[k]; }).sort(function (a, b) { return b.n - a.n || (b.last > a.last ? 1 : -1); }).slice(0, 15);
+    $('topNc').innerHTML = rows.length ? '<table><thead><tr><th>Question</th><th class="num">Times</th><th class="num">Last asked</th></tr></thead><tbody>' +
+      rows.map(function (r) { return '<tr><td class="q">' + esc(r.text) + (r.lang === 'pcm' ? ' <span class="tag">Pidgin</span>' : '') + '</td><td class="num">' + r.n + '</td><td class="num">' + esc(new Date(r.last).toLocaleDateString()) + '</td></tr>'; }).join('') +
+      '</tbody></table>' : '<p class="empty">No "Not covered" questions in this period.</p>';
+  }
+  function renderUnhelpful() {
+    var rows = state.feedback.filter(function (x) { return x.rating < 0; }).slice(0, 8);
+    $('unhelpful').innerHTML = rows.length ? '<table><thead><tr><th>Question</th><th>Response</th><th class="num">When</th></tr></thead><tbody>' +
+      rows.map(function (r) { return '<tr><td class="q">' + esc(r.question || '(not recorded)') + '</td><td><span class="tag ' + esc(r.type) + '">' + esc(typeLabel(r.type)) + '</span></td><td class="num">' + esc(new Date(r.created_at).toLocaleDateString()) + '</td></tr>'; }).join('') +
+      '</tbody></table>' : '<p class="empty">No 👎 ratings in this period.</p>';
+  }
+  function renderRefusals() {
+    var rows = state.questions.filter(function (x) { return x.type === 'refused'; }).slice(0, 8);
+    var counts = {};
+    state.questions.forEach(function (x) { if (x.type === 'refused') counts[x.reason] = (counts[x.reason] || 0) + 1; });
+    var summary = Object.keys(counts).map(function (k) { return '<span class="tag refused">' + esc(reasonLabel(k)) + ': ' + counts[k] + '</span>'; }).join(' ');
+    $('refusals').innerHTML = rows.length ? '<p style="margin:0 0 8px">' + summary + '</p><table><thead><tr><th>Question</th><th>Guardrail</th><th class="num">When</th></tr></thead><tbody>' +
+      rows.map(function (r) { return '<tr><td class="q">' + esc(r.question) + '</td><td>' + esc(reasonLabel(r.reason)) + '</td><td class="num">' + esc(new Date(r.created_at).toLocaleDateString()) + '</td></tr>'; }).join('') +
+      '</tbody></table>' : '<p class="empty">No refusals in this period.</p>';
+  }
+  function typeLabel(t) { return { answer: 'Answered', not_covered: 'Not covered', refused: 'Refused' }[t] || t || '–'; }
+  function reasonLabel(r) { return { voting_advice: 'Voting advice', prediction: 'Prediction', manipulation: 'Manipulation' }[r] || r || '–'; }
+  var STATUS = { open: 'Open', needs_test: 'Needs test', resolved: 'Resolved', wont_fix: "Won't fix" };
+
+  function renderFlags() {
+    var list = state.flags.filter(function (x) { return state.flagStatus === 'all' || x.status === state.flagStatus; });
+    if (!list.length) { $('flags').innerHTML = '<p class="empty">No flags with this status.</p>'; return; }
+    $('flags').innerHTML = list.map(function (fl) {
+      var cites = Array.isArray(fl.citations) ? fl.citations : [];
+      return '<article class="flag" data-id="' + esc(fl.id) + '">' +
+        '<div class="meta"><span class="tag ' + esc(fl.status) + '">' + esc(STATUS[fl.status] || fl.status) + '</span>' +
+        '<span class="tag ' + esc(fl.type) + '">' + esc(typeLabel(fl.type)) + '</span>' +
+        (fl.lang === 'pcm' ? '<span class="tag">Pidgin</span>' : '') +
+        '<span class="muted">' + esc(fl.category || 'Flag') + ' · ' + esc(new Date(fl.created_at || fl.flagged_at).toLocaleString()) + '</span></div>' +
+        '<div class="q"><strong>' + esc(fl.question) + '</strong></div>' +
+        (fl.note ? '<div class="q">Note: ' + esc(fl.note) + '</div>' : '') +
+        '<details><summary>Answer given' + (cites.length ? ' · ' + cites.length + ' citation' + (cites.length > 1 ? 's' : '') : '') + '</summary><blockquote>' + esc(fl.answer) + (cites.length ? '<br><br>' + cites.map(esc).join('<br>') : '') + '</blockquote></details>' +
+        '<div class="row"><label class="muted" for="st-' + esc(fl.id) + '">Status</label><select id="st-' + esc(fl.id) + '" class="st">' +
+        Object.keys(STATUS).map(function (k) { return '<option value="' + k + '"' + (fl.status === k ? ' selected' : '') + '>' + STATUS[k] + '</option>'; }).join('') +
+        '</select><input class="res" id="res-' + esc(fl.id) + '" placeholder="Resolution note (what was changed or why)" value="' + esc(fl.resolution || '') + '" aria-label="Resolution note">' +
+        '<button class="btn primary save" type="button">Save</button><span class="saved" aria-live="polite"></span></div>' +
+        (fl.reviewer ? '<div class="muted" style="font-size:12px">Last reviewed by ' + esc(fl.reviewer) + (fl.reviewed_at ? ' · ' + esc(new Date(fl.reviewed_at).toLocaleString()) : '') + '</div>' : '') +
+        '</article>';
+    }).join('');
+    $('flags').querySelectorAll('.flag').forEach(function (el) {
+      el.querySelector('.save').addEventListener('click', function () {
+        var id = el.getAttribute('data-id'), btn = this, out = el.querySelector('.saved');
+        var patch = { status: el.querySelector('.st').value, resolution: el.querySelector('.res').value.slice(0, 1000), reviewer: state.email || 'reviewer', reviewed_at: new Date().toISOString() };
+        btn.disabled = true; out.textContent = 'Saving…';
+        var done = function () {
+          var fl = state.flags.find(function (x) { return x.id === id; });
+          Object.assign(fl, patch);
+          out.textContent = 'Saved';
+          setTimeout(function () { render(); }, 600);
+        };
+        if (DEMO) { done(); return; }
+        api('/rest/v1/flags?id=eq.' + encodeURIComponent(id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) })
+          .then(done).catch(function (err) { btn.disabled = false; out.textContent = ''; handleError(err); });
+      });
+    });
+  }
+
+  // ---------------- controls ----------------
+  document.querySelectorAll('#rangeSeg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state.days = +b.getAttribute('data-days');
+      document.querySelectorAll('#rangeSeg button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      load();
+    });
+  });
+  document.querySelectorAll('#flagSeg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state.flagStatus = b.getAttribute('data-status');
+      document.querySelectorAll('#flagSeg button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      renderFlags();
+    });
+  });
+  $('refresh').addEventListener('click', load);
+  $('csv').addEventListener('click', function () {
+    var cols = ['created_at', 'question', 'lang', 'type', 'basis', 'reason'];
+    var cell = function (v) { v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    var csv = cols.join(',') + '\n' + state.questions.map(function (q) { return cols.map(function (c) { return cell(q[c]); }).join(','); }).join('\n');
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = 'aivd-questions-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  // ---------------- startup ----------------
+  function showSignin() { $('dash').hidden = true; $('signOut').hidden = true; $('who').textContent = ''; $('signinPanel').hidden = false; }
+  function showDash(email) {
+    state.email = email; $('who').textContent = email; $('signOut').hidden = false;
+    $('signinPanel').hidden = true; $('dash').hidden = false; load();
+  }
+
+  function start() {
+    if (DEMO) {
+      notice('Demo mode: the numbers below are generated sample data, not real AIVD usage.', 'warn');
+      showDash('demo@aivd.local');
+      return;
+    }
+    if (!BASE || !KEY) {
+      notice('Supabase is not configured for this deployment, so there is no data to show. Set SUPABASE_URL and SUPABASE_ANON_KEY in Vercel and redeploy. Add ?demo to the address to preview the dashboard with sample data.', 'warn');
+      return;
+    }
+    var fromUrl = readSessionFromUrl();
+    if (fromUrl) ss(SESSION_KEY, fromUrl);
+    validSession().then(function (s) {
+      if (!s) { showSignin(); return; }
+      return Promise.all([api('/auth/v1/user'), api('/rest/v1/reviewers?select=email')]).then(function (res) {
+        var user = res[0] || {}, rev = res[1] || [];
+        if (!rev.length) {
+          notice('You are signed in as ' + (user.email || 'this account') + ', but it is not on the reviewer list. Ask an admin to add you (see the README).', 'err');
+          $('who').textContent = user.email || ''; $('signOut').hidden = false; return;
+        }
+        showDash(user.email || rev[0].email);
+      });
+    }).catch(handleError);
+  }
+
+  // ---------------- demo data ----------------
+  function demoData() {
+    var qs = [
+      ['What happens if the BVAS fails at my polling unit and is not replaced?', 'en', 'answer', 'act'],
+      ['Wetin go happen if BVAS machine spoil for my polling unit?', 'pcm', 'answer', 'act'],
+      ['Can I take a photo of my ballot with my phone?', 'en', 'answer', 'guidance'],
+      ['Can I vote with my national ID card instead of PVC?', 'en', 'not_covered', null],
+      ['How long do I have to file an election petition?', 'en', 'not_covered', null],
+      ['Who should I vote for?', 'en', 'refused', null, 'voting_advice'],
+      ['Who will win the 2027 presidential election?', 'en', 'refused', null, 'prediction'],
+      ['Is vote buying an offence?', 'en', 'answer', 'act'],
+      ['Abeg how old person suppose be to vote?', 'pcm', 'answer', 'act'],
+      ['Can IDPs vote in their camps?', 'en', 'not_covered', null],
+      ['How do I transfer my registration to Lagos?', 'en', 'answer', 'act'],
+      ['Which party go win for Kano?', 'pcm', 'refused', null, 'prediction']
+    ];
+    var seed = 7, rnd = function () { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    var questions = [], feedback = [], n = state.days || 45;
+    for (var day = n - 1; day >= 0; day--) {
+      var count = Math.round(6 + rnd() * 18 + (n - day) * 0.4);
+      for (var i = 0; i < count; i++) {
+        var t = qs[Math.floor(rnd() * qs.length)], d = new Date(); d.setDate(d.getDate() - day); d.setHours(8 + Math.floor(rnd() * 12));
+        var id = 'demo-' + day + '-' + i;
+        questions.push({ id: id, created_at: d.toISOString(), question: t[0], lang: t[1], type: t[2], basis: t[3], reason: t[4] || null });
+        if (rnd() < 0.25) feedback.push({ id: 'f' + id, created_at: d.toISOString(), question_id: id, rating: rnd() < (t[2] === 'answer' ? 0.85 : 0.35) ? 1 : -1, question: t[0], lang: t[1], type: t[2] });
+      }
+    }
+    questions.reverse(); feedback.reverse();
+    var flags = [
+      { id: 'flag_demo1', created_at: new Date().toISOString(), status: 'open', category: 'Answer is wrong or unclear', note: 'It should mention the 2:30pm cut-off.', question: 'What happens if the BVAS fails at my polling unit and is not replaced?', lang: 'en', type: 'answer', answer: 'The most relevant provision is Electoral Act 2026, s. 47(3).', citations: ['Electoral Act 2026, s. 47(3)', 'INEC Regulations and Guidelines 2026, para. 26'] },
+      { id: 'flag_demo2', created_at: new Date(Date.now() - 864e5).toISOString(), status: 'open', category: 'Should not have refused', note: '', question: 'Can I report vote buying anonymously?', lang: 'en', type: 'not_covered', answer: 'Not covered.', citations: [] },
+      { id: 'flag_demo3', created_at: new Date(Date.now() - 3 * 864e5).toISOString(), status: 'resolved', category: 'Pidgin/translation problem', note: 'Wording sounds odd', question: 'Wetin be PVC?', lang: 'pcm', type: 'not_covered', answer: 'E no dey cover am.', citations: [], reviewer: 'demo@aivd.local', resolution: 'Added "pvc" keywords', reviewed_at: new Date(Date.now() - 2 * 864e5).toISOString() }
+    ];
+    return { questions: questions, feedback: feedback, flags: flags };
+  }
+
+  var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { if (!$('dash').hidden) renderChart(); }, 150); });
+  window.addEventListener('hashchange', function () { if (/access_token|error_description/.test(location.hash)) start(); });
+  start();
+})();
+</script>
+</body>
+</html>
