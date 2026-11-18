@@ -1,0 +1,176 @@
+Sample Act Gazette No. 1
+SAMPLE ACT FOR PARSER TESTING (NOT LAW)
+ARRANGEMENT OF SECTIONS
+PART I — PRELIMINARY
+1. Heading number 1
+2. Heading number 2
+3. Heading number 3
+4. Heading number 4
+5. Heading number 5
+6. Heading number 6
+7. Heading number 7
+8. Heading number 8
+9. Heading number 9
+10. Heading number 10
+11. Heading number 11
+12. Heading number 12
+13. Heading number 13
+14. Heading number 14
+15. Heading number 15
+16. Heading number 16
+17. Heading number 17
+18. Heading number 18
+19. Heading number 19
+
+A 101Sample Act Gazette No. 2
+20. Heading number 20
+21. Heading number 21
+22. Heading number 22
+23. Heading number 23
+24. Heading number 24
+25. Heading number 25
+26. Heading number 26
+27. Heading number 27
+28. Heading number 28
+29. Heading number 29
+30. Heading number 30
+31. Heading number 31
+32. Heading number 32
+33. Heading number 33
+34. Heading number 34
+35. Heading number 35
+36. Heading number 36
+37. Heading number 37
+38. Heading number 38
+39. Heading number 39
+40. Heading number 40
+41. Heading number 41
+
+A 102Sample Act Gazette No. 3
+42. Heading number 42
+43. Heading number 43
+44. Heading number 44
+45. Heading number 45
+46. Heading number 46
+47. Heading number 47
+48. Heading number 48
+SAMPLE ACT FOR PARSER TESTING (NOT LAW)
+BE IT ENACTED by the Sample Assembly as follows:
+PART I
+PRELIMINARY
+Sample matter BA
+1. The sample text of section 1 applies to sample matters only.
+Sample matter CA
+2. The sample text of section 2 applies to sample matters only.
+Sample matter DA
+3. The sample text of section 3 applies to sample matters only.
+Sample matter EA
+4. The sample text of section 4 applies to sample matters only.
+Sample matter FA
+5. The sample text of section 5 applies to sample matters only.
+Sample matter GA
+
+A 103Sample Act Gazette No. 4
+6. The sample text of section 6 applies to sample matters only.
+Sample matter HA
+7. The sample text of section 7 applies to sample matters only.
+Sample matter IA
+8. The sample text of section 8 applies to sample matters only.
+Sample matter JA
+9. The sample text of section 9 applies to sample matters only.
+Sample matter KA
+10. The sample text of section 10 applies to sample matters only.
+Sample matter LA
+11. The sample text of section 11 applies to sample matters only.
+Sample offence
+12. A sample person who gives a sample inducement to a sample voter commits a sample offence and is liable on convic-
+tion to a sample fine.
+Sample matter NA
+13. The sample text of section 13 applies to sample matters only.
+Sample matter OA
+14. The sample text of section 14 applies to sample matters only.
+Sample matter PA
+15. The sample text of section 15 applies to sample matters only.
+Sample matter QA
+16. The sample text of section 16 applies to sample matters only.
+
+A 104Sample Act Gazette No. 5
+Sample matter RA
+17. The sample text of section 17 applies to sample matters only.
+Sample matter SA
+18. The sample text of section 18 applies to sample matters only.
+Sample matter TA
+19. The sample text of section 19 applies to sample matters only.
+Sample matter UA
+20. The sample text of section 20 applies to sample matters only.
+Sample matter VA
+21. The sample text of section 21 applies to sample matters only.
+Sample matter WA
+22. The sample text of section 22 applies to sample matters only.
+Sample matter XA
+23. The sample text of section 23 applies to sample matters only.
+Sample matter YA
+24. The sample text of section 24 applies to sample matters only.
+Sample matter ZA
+25. The sample text of section 25 applies to sample matters only.
+Sample matter AB
+26. The sample text of section 26 applies to sample matters only.
+Sample matter BB
+27. The sample text of section 27 applies to sample matters only.
+
+A 105Sample Act Gazette No. 6
+Sample matter CB
+28. The sample text of section 28 applies to sample matters only.
+Sample matter DB
+29. The sample text of section 29 applies to sample matters only.
+Sample matter EB
+30. The sample text of section 30 applies to sample matters only.
+Sample matter FB
+31. The sample text of section 31 applies to sample matters only.
+Sample matter GB
+32. The sample text of section 32 applies to sample matters only.
+Sample matter HB
+33. The sample text of section 33 applies to sample matters only.
+Sample matter IB
+34. The sample text of section 34 applies to sample matters only.
+Sample matter JB
+35. The sample text of section 35 applies to sample matters only.
+Sample matter KB
+36. The sample text of section 36 applies to sample matters only.
+Sample matter LB
+37. The sample text of section 37 applies to sample matters only.
+Sample matter MB
+38. The sample text of section 38 applies to sample matters only.
+
+A 106Sample Act Gazette No. 7
+Sample matter NB
+39. The sample text of section 39 applies to sample matters only.
+PART II — ACCREDITATION AND VOTING
+Sample matter OB
+40. The sample text of section 40 applies to sample matters only.
+Sample matter PB
+41. The sample text of section 41 applies to sample matters only.
+Sample matter QB
+42. The sample text of section 42 applies to sample matters only.
+Sample matter RB
+43. The sample text of section 43 applies to sample matters only.
+Sample matter SB
+44. The sample text of section 44 applies to sample matters only.
+Sample matter TB
+45. The sample text of section 45 applies to sample matters only.
+Sample matter UB
+46. The sample text of section 46 applies to sample matters only.
+Accreditation of sample voters
+47.—(1) A sample voter shall present a sample card to the sample officer at the sample unit in
+which the name is registered.
+(2) The sample officer shall use a sample device to verify the sample voter.
+(3) Where the sample device fails to function in a sample unit and is not replaced, the sample
+
+A 107Sample Act Gazette No. 8
+poll in that unit shall be treated as the sample rules provide.
+Sample matter WB
+48. The sample text of section 48 applies to sample matters only.
+FIRST SCHEDULE
+1. Schedule paragraph that must not be parsed as section 1.
+
+A 108

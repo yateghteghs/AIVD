@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Voter Desk</title>
+<meta name="description" content="AI Voter Desk (AIVD) by Index Prima: answers voter questions in English and Pidgin with citations to the Electoral Act 2026.">
+<style>
+  :root {
+    --bg: #f6f7f5; --surface: #ffffff; --surface-2: #eef1ec; --text: #17201b; --muted: #5b665f;
+    --border: #d9ded8; --brand: #0b7a4b; --brand-ink: #ffffff; --brand-soft: #e2f2ea;
+    --warn: #8a5a00; --warn-soft: #fff4d6; --danger: #a12b2b; --danger-soft: #fbe5e5;
+    --info: #1e4f8a; --info-soft: #e3edf9; --focus: #0b7a4b;
+    --radius: 12px; --shadow: 0 1px 2px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1412; --surface: #171d1a; --surface-2: #1f2723; --text: #e6ece8; --muted: #9aa69f;
+      --border: #2c3631; --brand: #3fbf86; --brand-ink: #062015; --brand-soft: #173326;
+      --warn: #f0c060; --warn-soft: #3a2e12; --danger: #f08a8a; --danger-soft: #3a1c1c;
+      --info: #8fb8f0; --info-soft: #172a42; --focus: #3fbf86; --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1412; --surface: #171d1a; --surface-2: #1f2723; --text: #e6ece8; --muted: #9aa69f;
+    --border: #2c3631; --brand: #3fbf86; --brand-ink: #062015; --brand-soft: #173326;
+    --warn: #f0c060; --warn-soft: #3a2e12; --danger: #f08a8a; --danger-soft: #3a1c1c;
+    --info: #8fb8f0; --info-soft: #172a42; --focus: #3fbf86; --shadow: none;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  button, textarea, select, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 16px; }
+
+  header.top { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
+  @media (max-width: 640px) { header.top { position: static; } }
+  header.top .wrap { display: flex; align-items: center; gap: 12px; min-height: 60px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
+  .brand { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+  .logo { width: 46px; height: 34px; border-radius: 9px; letter-spacing: .02em; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+  .brand h1 { font-size: 18px; margin: 0; line-height: 1.1; }
+  .brand small { color: var(--muted); font-size: 12px; display: block; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+  .seg button { border: 0; background: transparent; padding: 6px 12px; cursor: pointer; font-size: 14px; }
+  .seg button[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); }
+  .btn { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 14px; }
+  .btn:hover { background: var(--surface-2); }
+  .btn.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); font-weight: 600; padding: 10px 18px; }
+  .btn.primary:disabled { opacity: .6; cursor: default; }
+  .count { display: inline-block; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 700; text-align: center; margin-left: 4px; }
+
+  .banner { margin: 16px 0 0; padding: 10px 14px; border-radius: var(--radius); font-size: 14px; border: 1px solid; }
+  .banner.warn { background: var(--warn-soft); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
+  .banner.ok { background: var(--brand-soft); color: var(--brand); border-color: color-mix(in srgb, var(--brand) 30%, transparent); }
+
+  .ask { margin: 16px 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); }
+  .ask label { font-weight: 600; display: block; margin-bottom: 6px; }
+  .ask textarea { width: 100%; min-height: 76px; resize: vertical; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: var(--bg); }
+  .ask .row { display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .ask .hint { color: var(--muted); font-size: 13px; margin-right: auto; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip { border: 1px dashed var(--border); background: transparent; border-radius: 999px; padding: 4px 10px; font-size: 13px; cursor: pointer; color: var(--muted); text-align: left; }
+  .chip:hover { color: var(--text); border-style: solid; }
+
+  #feed { display: flex; flex-direction: column-reverse; gap: 14px; padding-bottom: 40px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
+  .q { font-weight: 600; margin: 0 0 8px; overflow-wrap: anywhere; }
+  .meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .tag { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+  .tag.answer { background: var(--brand-soft); color: var(--brand); }
+  .tag.not_covered { background: var(--info-soft); color: var(--info); }
+  .tag.refused { background: var(--danger-soft); color: var(--danger); }
+  .tag.unverified { background: var(--warn-soft); color: var(--warn); }
+  .answer-text { margin: 0 0 6px; }
+  .caveat { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+  h3.sub { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 14px 0 6px; }
+  .cites { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .cite { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: var(--bg); }
+  .cite summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+  .cite summary span { font-weight: 400; color: var(--muted); }
+  .cite blockquote { margin: 8px 0 2px; padding: 0 0 0 10px; border-left: 3px solid var(--brand); font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
+
+  .conflict { margin-top: 14px; border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--border)); border-radius: 10px; overflow: hidden; }
+  .conflict > header { background: var(--warn-soft); color: var(--warn); padding: 8px 12px; font-weight: 700; font-size: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .conflict .body { padding: 10px 12px; font-size: 14px; }
+  .sources { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0; }
+  @media (max-width: 640px) { .sources { grid-template-columns: 1fr; } }
+  .src { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: var(--bg); }
+  .src .rank { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); }
+  .src h4 { margin: 2px 0 4px; font-size: 14px; }
+  .src p { margin: 0; overflow-wrap: anywhere; }
+  .resolution { background: var(--brand-soft); border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
+
+  .actions { margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .flagform { margin-top: 10px; display: grid; gap: 8px; background: var(--surface-2); padding: 10px; border-radius: 8px; }
+  .flagform select, .flagform textarea { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; background: var(--surface); }
+  .flagged { color: var(--warn); font-size: 13px; font-weight: 600; }
+
+  dialog { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); width: min(720px, calc(100vw - 32px)); padding: 0; }
+  dialog::backdrop { background: rgba(0,0,0,.4); }
+  dialog header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  dialog header h2 { font-size: 16px; margin: 0; }
+  dialog .content { padding: 12px 16px; max-height: 60vh; overflow: auto; }
+  dialog footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  .flagitem { border-bottom: 1px solid var(--border); padding: 8px 0; font-size: 14px; }
+  .flagitem:last-child { border-bottom: 0; }
+  .muted { color: var(--muted); }
+  footer.site { color: var(--muted); font-size: 12px; padding: 0 0 24px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">AIVD</div>
+      <div>
+        <h1>AI Voter Desk</h1>
+        <small>Index Prima · AI4Elections</small>
+      </div>
+    </div>
+    <div class="seg" role="group" aria-label="Answer language" id="langSeg">
+      <button type="button" data-lang="auto" aria-pressed="true">Auto</button>
+      <button type="button" data-lang="en" aria-pressed="false">English</button>
+      <button type="button" data-lang="pcm" aria-pressed="false">Pidgin</button>
+    </div>
+    <button type="button" class="btn" id="queueBtn"><span data-i18n="queue">Review queue</span><span class="count" id="queueCount">0</span></button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="corpusBanner" class="banner warn" role="note"></div>
+
+  <form class="ask" id="askForm" autocomplete="off">
+    <label for="q" data-i18n="askLabel">Ask about voting and the Electoral Act</label>
+    <textarea id="q" name="q" maxlength="600" data-i18n-ph="placeholder" placeholder="e.g. Can someone else collect my PVC for me?"></textarea>
+    <div class="row">
+      <span class="hint" data-i18n="hint">Answers cite the Act. No voting advice or predictions.</span>
+      <button class="btn primary" type="submit" id="askBtn" data-i18n="ask">Ask</button>
+    </div>
+    <div class="chips" id="chips" aria-label="Example questions"></div>
+  </form>
+
+  <section id="feed" aria-live="polite" aria-label="Answers"></section>
+  <footer class="site wrap" id="siteFooter"></footer>
+</main>
+
+<dialog id="queueDlg" aria-labelledby="queueTitle">
+  <header><h2 id="queueTitle" data-i18n="queueTitle">Flagged for review</h2><button class="btn" type="button" id="queueClose" data-i18n="close">Close</button></header>
+  <div class="content" id="queueList"></div>
+  <footer>
+    <button class="btn" type="button" id="queueClear" data-i18n="clear">Clear all</button>
+    <button class="btn primary" type="button" id="queueExport" data-i18n="export">Export JSON</button>
+  </footer>
+</dialog>
+
+<script src="data/provisions.js"></script>
+<script src="data/rules.js"></script>
+<script src="engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  var engine = AIVD.createEngine({ provisions: AIVD_PROVISIONS, rules: AIVD_RULES, meta: AIVD_META });
+  var FLAG_KEY = 'aivd.flags.v1', LANG_KEY = 'aivd.lang.v1';
+  var langPref = 'auto';
+  var results = [];
+
+  var UI = {
+    en: {
+      askLabel: 'Ask about voting and the Electoral Act', placeholder: 'e.g. Can someone else collect my PVC for me?',
+      hint: 'Answers cite the Act. No voting advice or predictions.', ask: 'Ask', queue: 'Review queue',
+      queueTitle: 'Flagged for review', close: 'Close', clear: 'Clear all', export: 'Export JSON',
+      answer: 'Answer', not_covered: 'Not covered', refused: "Can't help with that", unverified: 'Unverified source text',
+      sources: 'Sources', conflict: 'Rule conflict', conflictUnverified: 'Sources not yet verified', tension: 'Where they can differ',
+      resolution: 'How AIVD resolves it', controlling: 'Controlling', subsidiary: 'Subsidiary',
+      flag: 'Flag for review', flagged: 'Flagged for review', reason: 'What is wrong?', note: 'Note (optional)', submit: 'Submit flag', cancel: 'Cancel',
+      reasons: ['Wrong or missing citation', 'Answer is wrong or unclear', 'Should have refused', 'Should not have refused', 'Pidgin/translation problem', 'Other'],
+      empty: 'No flags yet. Use "Flag for review" on any answer.', page: 'page', lang: { en: 'English', pcm: 'Pidgin' },
+      bannerSample: 'Demo corpus: these provisions are unverified sample summaries, not the official text of the Electoral Act 2026. Run the ingest script on the official PDF before any public demo.',
+      bannerOk: 'Official text loaded from {file} ({n} provisions, ingested {date}).'
+    },
+    pcm: {
+      askLabel: 'Ask about voting and di Electoral Act', placeholder: 'e.g. Another person fit collect my PVC for me?',
+      hint: 'Answer go show di section for di Act. We no dey tell person who to vote or who go win.', ask: 'Ask', queue: 'Review list',
+      queueTitle: 'Answers wey dem flag', close: 'Close', clear: 'Clear all', export: 'Export JSON',
+      answer: 'Answer', not_covered: 'E no dey cover am', refused: 'I no fit help with dis one', unverified: 'Dem never verify di text',
+      sources: 'Where e come from', conflict: 'Rule conflict', conflictUnverified: 'Dem never verify di sources', tension: 'Where dem fit no agree',
+      resolution: 'How AIVD dey settle am', controlling: 'Main authority', subsidiary: 'Under di Act',
+      flag: 'Flag am for review', flagged: 'You don flag am', reason: 'Wetin wrong?', note: 'Note (if you like)', submit: 'Send flag', cancel: 'Cancel',
+      reasons: ['Citation wrong or e no dey', 'Answer wrong or no clear', 'E suppose refuse', 'E no suppose refuse', 'Pidgin/translation wahala', 'Other'],
+      empty: 'Nobody don flag anything. Press "Flag am for review" under any answer.', page: 'page', lang: { en: 'English', pcm: 'Pidgin' },
+      bannerSample: 'Demo corpus: dis sections na sample summary wey dem never verify, e no be di official text of Electoral Act 2026. Run di ingest script on di official PDF before any public demo.',
+      bannerOk: 'Official text don load from {file} ({n} provisions, ingested {date}).'
+    }
+  };
+
+  var EXAMPLES = [
+    'Can my brother collect my PVC for me?',
+    'What happens if the BVAS fails at my polling unit and is not replaced?',
+    'Wetin go happen if BVAS machine spoil for my polling unit?',
+    'Is vote buying an offence?',
+    'Who should I vote for?',
+    'Who will win the 2027 presidential election?',
+    'What is the salary of the INEC chairman?'
+  ];
+
+  // ---------- helpers ----------
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
+  function uiLang() { return langPref === 'auto' ? 'en' : langPref; }
+  function t(key, lang) { return UI[lang || uiLang()][key]; }
+
+  // ---------- static UI ----------
+  function applyUiLang() {
+    var L = uiLang();
+    document.documentElement.lang = L === 'pcm' ? 'pcm' : 'en';
+    document.querySelectorAll('[data-i18n]').forEach(function (el) { el.textContent = t(el.getAttribute('data-i18n'), L); });
+    document.querySelectorAll('[data-i18n-ph]').forEach(function (el) { el.placeholder = t(el.getAttribute('data-i18n-ph'), L); });
+    var b = $('corpusBanner');
+    if (AIVD_META.verified) {
+      b.className = 'banner ok';
+      b.textContent = t('bannerOk', L).replace('{file}', (AIVD_META.source || {}).file || 'PDF').replace('{n}', AIVD_PROVISIONS.length).replace('{date}', (AIVD_META.generatedAt || '').slice(0, 10));
+    } else {
+      b.className = 'banner warn';
+      b.textContent = t('bannerSample', L);
+    }
+    $('siteFooter').textContent = 'AI Voter Desk gives general information from the ' + AIVD_META.actName + ', not legal advice. It never tells you who to vote for. Official results and decisions come from INEC.';
+  }
+
+  document.querySelectorAll('#langSeg button').forEach(function (btn) {
+    btn.addEventListener('click', function () { setLang(btn.getAttribute('data-lang')); });
+  });
+  function setLang(l) {
+    langPref = l;
+    store(LANG_KEY, l);
+    document.querySelectorAll('#langSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === l)); });
+    applyUiLang();
+  }
+
+  EXAMPLES.forEach(function (ex) {
+    var c = document.createElement('button');
+    c.type = 'button'; c.className = 'chip'; c.textContent = ex;
+    c.addEventListener('click', function () { $('q').value = ex; ask(ex); });
+    $('chips').appendChild(c);
+  });
+
+  // ---------- asking ----------
+  $('askForm').addEventListener('submit', function (e) { e.preventDefault(); ask($('q').value); });
+  $('q').addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask($('q').value); } });
+
+  function ask(q) {
+    if (!q || !q.trim()) return;
+    var r = engine.ask(q, { lang: langPref });
+    r._idx = results.length;
+    results.push(r);
+    $('feed').appendChild(renderResult(r));
+    $('q').value = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function renderResult(r) {
+    var L = r.lang;
+    var card = document.createElement('article');
+    card.className = 'card';
+    var html = '<p class="q">' + esc(r.question) + '</p>';
+    html += '<div class="meta"><span class="tag ' + r.type + '">' + esc(t(r.type, L)) + '</span>';
+    html += '<span class="tag">' + esc(UI[L].lang[L]) + '</span>';
+    if (r.unverified) html += '<span class="tag unverified">' + esc(t('unverified', L)) + '</span>';
+    html += '</div>';
+    html += '<p class="answer-text">' + esc(r.text) + '</p>';
+    if (r.caveat) html += '<p class="caveat">' + esc(r.caveat) + '</p>';
+
+    if (r.citations.length) {
+      html += '<h3 class="sub">' + esc(t('sources', L)) + '</h3><ul class="cites">';
+      r.citations.forEach(function (c, i) {
+        html += '<li class="cite"><details' + (i === 0 ? ' open' : '') + '><summary>' + esc(c.label) +
+          ' <span>· ' + esc(c.title) + (c.page ? ' · ' + t('page', L) + ' ' + esc(c.page) : '') + (c.verified ? '' : ' · ' + esc(t('unverified', L))) + '</span></summary>' +
+          '<blockquote>' + esc(c.excerpt) + '</blockquote></details></li>';
+      });
+      html += '</ul>';
+    }
+
+    (r.conflicts || []).forEach(function (c) {
+      html += '<section class="conflict" aria-label="' + esc(t('conflict', L)) + '"><header>⚖ ' + esc(t('conflict', L)) + ': ' + esc(c.title) +
+        (c.verified ? '' : ' <span class="tag unverified">' + esc(t('conflictUnverified', L)) + '</span>') + '</header><div class="body">';
+      html += '<p class="muted" style="margin:0">' + esc(c.question) + '</p><div class="sources">';
+      c.sources.slice().sort(function (a, b) { return a.rank - b.rank; }).forEach(function (s) {
+        html += '<div class="src"><div class="rank">' + esc(s.rank === 1 ? t('controlling', L) : t('subsidiary', L)) + ' · ' + esc(s.kind) + '</div>' +
+          '<h4>' + esc(s.label) + (s.page ? ' · ' + t('page', L) + ' ' + esc(s.page) : '') + '</h4><p>' + esc(s.text) + '</p></div>';
+      });
+      html += '</div><p style="margin:6px 0"><strong>' + esc(t('tension', L)) + ':</strong> ' + esc(c.tension) + '</p>';
+      html += '<div class="resolution"><strong>' + esc(t('resolution', L)) + ':</strong> ' + esc(L === 'pcm' && c.resolution_pcm ? c.resolution_pcm : c.resolution) + '</div>';
+      html += '</div></section>';
+    });
+
+    html += '<div class="actions"><button type="button" class="btn flagbtn">⚑ ' + esc(t('flag', L)) + '</button></div>';
+    card.innerHTML = html;
+    card.querySelector('.flagbtn').addEventListener('click', function () { openFlagForm(card, r); });
+    return card;
+  }
+
+  // ---------- flag for review ----------
+  function openFlagForm(card, r) {
+    if (card.querySelector('.flagform')) return;
+    var L = r.lang;
+    var f = document.createElement('form');
+    f.className = 'flagform';
+    f.innerHTML = '<label>' + esc(t('reason', L)) + '<select name="reason">' + t('reasons', L).map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('') + '</select></label>' +
+      '<label>' + esc(t('note', L)) + '<textarea name="note" rows="2" maxlength="1000"></textarea></label>' +
+      '<div class="actions" style="margin:0"><button class="btn primary" type="submit">' + esc(t('submit', L)) + '</button><button class="btn" type="button" data-cancel>' + esc(t('cancel', L)) + '</button></div>';
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var rec = AIVD.makeFlagRecord(r, f.note.value);
+      rec.category = f.reason.value;
+      rec.corpus = AIVD_META.corpus;
+      var flags = store(FLAG_KEY) || [];
+      flags.push(rec);
+      store(FLAG_KEY, flags);
+      updateCount();
+      f.outerHTML = '<p class="flagged">⚑ ' + esc(t('flagged', L)) + ' · ' + esc(rec.id) + '</p>';
+      var btn = card.querySelector('.flagbtn'); if (btn) btn.disabled = true;
+    });
+    f.querySelector('[data-cancel]').addEventListener('click', function () { f.remove(); });
+    card.appendChild(f);
+    f.reason.focus();
+  }
+
+  function updateCount() { $('queueCount').textContent = (store(FLAG_KEY) || []).length; }
+
+  $('queueBtn').addEventListener('click', function () {
+    var flags = store(FLAG_KEY) || [];
+    $('queueList').innerHTML = flags.length ? flags.slice().reverse().map(function (f) {
+      return '<div class="flagitem"><strong>' + esc(f.category || 'Flag') + '</strong> <span class="muted">· ' + esc(f.flaggedAt.replace('T', ' ').slice(0, 16)) + ' · ' + esc(f.type) + '</span><br>' +
+        esc(f.question) + (f.note ? '<br><span class="muted">' + esc(f.note) + '</span>' : '') + '</div>';
+    }).join('') : '<p class="muted">' + esc(t('empty')) + '</p>';
+    $('queueDlg').showModal();
+  });
+  $('queueClose').addEventListener('click', function () { $('queueDlg').close(); });
+  $('queueClear').addEventListener('click', function () { if (confirm('Delete all flags stored in this browser?')) { store(FLAG_KEY, []); updateCount(); $('queueDlg').close(); } });
+  $('queueExport').addEventListener('click', function () {
+    var data = JSON.stringify({ exportedAt: new Date().toISOString(), corpus: AIVD_META, flags: store(FLAG_KEY) || [] }, null, 2);
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+    a.download = 'aivd-flags-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  // ---------- init ----------
+  var saved = store(LANG_KEY);
+  setLang(saved === 'en' || saved === 'pcm' ? saved : 'auto');
+  updateCount();
+  var qs = new URLSearchParams(location.search).get('q');
+  if (qs) ask(qs);
+})();
+</script>
+</body>
+</html>

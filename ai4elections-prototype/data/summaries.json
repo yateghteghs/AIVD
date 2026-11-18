@@ -1,0 +1,3 @@
+{
+  "_doc": "Reviewed plain-language summaries, keyed by provision id (e.g. \"s47-3\"). scripts/ingest_act.py merges these into data/provisions.js so they survive re-ingest. Add an entry only after a reviewer has checked it against the official text; Pidgin (pcm) entries also need a native-speaker check. Without a summary, AIVD shows the official wording with a short lead sentence. Example: \"s47-3\": { \"en\": \"...\", \"pcm\": \"...\", \"reviewed_by\": \"name\", \"reviewed_on\": \"2026-12-01\" }"
+}

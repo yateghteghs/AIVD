@@ -1,0 +1,6 @@
+node_modules/
+*.log
+.DS_Store
+ingest-report.json
+eval-results.json
+source/

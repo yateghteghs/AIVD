@@ -1,0 +1,13 @@
+{
+  "_doc": "Topic tags assigned to ingested provisions by keyword hits in the title (weighted x3) and text. Used by tests/questions.json 'topic' expectations. Adjust after reviewing the official Act.",
+  "registration": ["register of voters", "registration of voters", "qualification", "eligible", "continuous registration", "registration", "attained the age"],
+  "transfer": ["transfer", "change of residence", "relocat"],
+  "pvc": ["voter's card", "voters card", "voter card", "permanent voter", "collection of"],
+  "accreditation": ["accreditation", "technological device", "smart card reader", "bvas", "presiding officer shall use"],
+  "secrecy": ["secrecy", "secret ballot", "photograph", "voting cubicle"],
+  "disability": ["disability", "visually impaired", "incapacitated", "braille", "physically challenged", "assisted"],
+  "offences": ["offence", "vote buying", "bribery", "inducement", "liable on conviction", "imprisonment"],
+  "campaign": ["campaign", "rally", "procession"],
+  "results": ["result", "collation", "count", "transmission", "declare", "returning officer"],
+  "petitions": ["petition", "tribunal", "election petition"]
+}
