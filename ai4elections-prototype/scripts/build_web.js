@@ -21,6 +21,15 @@ for (const f of files) {
 let url = (process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
 let key = (process.env.SUPABASE_ANON_KEY || '').trim();
 
+// Be forgiving about how values were pasted: labels like "A = ", quotes, spaces,
+// or a trailing path such as /rest/v1/. Keep only the part we need.
+const urlMatch = url.match(/(?:https?:\/\/)?([a-z0-9-]+\.supabase\.(?:co|in))/i);
+if (urlMatch) url = 'https://' + urlMatch[1].toLowerCase();
+if (!/sb_secret_/.test(key)) {
+  const keyMatch = key.match(/sb_publishable_[A-Za-z0-9_-]+/) || key.match(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/);
+  if (keyMatch) key = keyMatch[0];
+}
+
 // Safety checks: this file is served to every visitor, so never publish a secret key.
 function jwtRole(k) {
   try { return JSON.parse(Buffer.from(k.split('.')[1], 'base64url').toString()).role; } catch (e) { return null; }
@@ -36,7 +45,7 @@ if (url && !/^https:\/\/[a-z0-9-]+\.supabase\.(co|in)$|^https:\/\/[a-z0-9.-]+$/i
   codes.push(/^sb_/.test(url) ? 'url_is_a_key' : 'url_not_address');
   problems.push('SUPABASE_URL must be your project address, like https://abcdefgh.supabase.co (got something that is not a URL).');
 }
-if (/^sb_secret_/.test(key) || /^sb_secret_/.test(url) || jwtRole(key) === 'service_role') {
+if (/sb_secret_/.test(key) || /sb_secret_/.test(url) || jwtRole(key) === 'service_role') {
   codes.push('key_is_secret');
   problems.push('SUPABASE_ANON_KEY is a SECRET key. Use the publishable key (sb_publishable_...) or the legacy anon key instead, and revoke the secret key in Supabase.');
 }
