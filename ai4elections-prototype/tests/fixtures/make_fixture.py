@@ -9,7 +9,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 def build():
     toc = ["SAMPLE ACT FOR PARSER TESTING (NOT LAW)", "ARRANGEMENT OF SECTIONS", "PART I — PRELIMINARY"]
-    toc += ["%d. Heading number %d" % (n, n) for n in range(1, 49)]
+    def heading(n):
+        return {47: "Accreditation of sample voters", 12: "Sample offence"}.get(n, "Sample matter %s%s" % (chr(65 + n % 26), chr(65 + n // 26)))
+    toc += ["%d. %s" % (n, heading(n)) for n in range(1, 49)]
     body = ["SAMPLE ACT FOR PARSER TESTING (NOT LAW)", "BE IT ENACTED by the Sample Assembly as follows:", "PART I", "PRELIMINARY"]
     for n in range(1, 49):
         if n == 40:

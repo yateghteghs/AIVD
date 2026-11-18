@@ -1,0 +1,60 @@
+{
+  "_doc": "INEC documents listed at https://inecnigeria.org/elections/guidelines (checked 18 Nov 2026). status: 'current' documents are written for the Electoral Act 2026; 'dated' documents were written for the Electoral Act 2022 or a past election and are shown with a warning and never used as the only basis for an answer. structure: 'numbered' splits on numbered paragraphs (1., 2., ...); 'paragraphs' splits on paragraph breaks.",
+  "documents": [
+    {
+      "id": "reg2026",
+      "title": "Regulations and Guidelines for the Conduct of Elections, 2026",
+      "short": "INEC Regulations and Guidelines 2026",
+      "url": "https://inecnigeria.org/documents/guidelines/REGULATIONS-AND-GUIDELINES-FOR-2026.pdf",
+      "year": 2026,
+      "basis": "Electoral Act 2026",
+      "status": "current",
+      "structure": "numbered",
+      "refLabel": "para."
+    },
+    {
+      "id": "etc",
+      "title": "Procedure for Electronic Transmission & Collation of Results",
+      "short": "INEC Electronic Transmission & Collation of Results",
+      "url": "https://inecnigeria.org/documents/guidelines/Electronic_Transmission___Collation_Of_Result-5.pdf",
+      "year": 2022,
+      "basis": "Electoral Act 2022",
+      "status": "dated",
+      "structure": "paragraphs",
+      "note": "Quotes and cites the Electoral Act 2022; section numbers may differ in the 2026 Act."
+    },
+    {
+      "id": "ep2023",
+      "title": "2023 General Election Voting Procedures",
+      "short": "INEC 2023 Voting Procedures",
+      "url": "https://inecnigeria.org/documents/guidelines/2023-Election-Procedure-1.pdf",
+      "year": 2023,
+      "basis": "Electoral Act 2022",
+      "status": "dated",
+      "structure": "paragraphs",
+      "note": "Voter guide for the 2023 general election (dates and times were for 2023)."
+    },
+    {
+      "id": "supp2023",
+      "title": "Press Release: Conduct of Supplementary Elections (27 March 2023)",
+      "short": "INEC press release on 2023 supplementary elections",
+      "url": "https://inecnigeria.org/documents/CONDUCT-OF-SUPPLEMENTARY-ELECTIONS.pdf",
+      "year": 2023,
+      "basis": "Electoral Act 2022",
+      "status": "dated",
+      "structure": "paragraphs",
+      "note": "One-off announcement about the 2023 supplementary elections."
+    },
+    {
+      "id": "idp2022",
+      "title": "Revised Framework and Regulations for Voting by Internally Displaced Persons (IDPs), 2022",
+      "short": "INEC IDP Voting Framework 2022",
+      "url": "https://inecnigeria.org/documents/Revised_IDP_Framework_Validation-2022XXX.pdf",
+      "year": 2022,
+      "basis": "Electoral Act 2022",
+      "status": "dated",
+      "structure": "paragraphs",
+      "note": "Validation draft presented 6 September 2022."
+    }
+  ]
+}

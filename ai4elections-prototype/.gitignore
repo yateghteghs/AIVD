@@ -4,3 +4,5 @@ node_modules/
 ingest-report.json
 eval-results.json
 source/
+sources/
+__pycache__/

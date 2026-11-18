@@ -81,6 +81,14 @@
   .cite summary span { font-weight: 400; color: var(--muted); }
   .cite blockquote { margin: 8px 0 2px; padding: 0 0 0 10px; border-left: 3px solid var(--brand); font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
 
+  .cite.guide { border-left: 3px solid var(--info); }
+  .cite.guide blockquote { border-left-color: var(--info); }
+  .cite.related { opacity: .9; border-style: dashed; }
+  .cite-tags { margin: 8px 0 0; }
+  .tag.dated { background: var(--warn-soft); color: var(--warn); }
+  .tag.guide-tag { background: var(--info-soft); color: var(--info); }
+  a.pdf { display: inline-block; margin-top: 6px; font-size: 13px; color: var(--brand); }
+  .small { font-size: 12px; margin: 4px 0 0; }
   .conflict { margin-top: 14px; border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--border)); border-radius: 10px; overflow: hidden; }
   .conflict > header { background: var(--warn-soft); color: var(--warn); padding: 8px 12px; font-weight: 700; font-size: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .conflict .body { padding: 10px 12px; font-size: 14px; }
@@ -157,11 +165,13 @@
 <script src="config.js"></script>
 <script src="data/provisions.js"></script>
 <script src="data/rules.js"></script>
+<script src="data/guidelines.js"></script>
 <script src="engine.js"></script>
 <script>
 (function () {
   'use strict';
-  var engine = AIVD.createEngine({ provisions: AIVD_PROVISIONS, rules: AIVD_RULES, meta: AIVD_META });
+  var GUIDE = typeof AIVD_GUIDE_DOCS !== 'undefined' ? { documents: AIVD_GUIDE_DOCS, guidelines: AIVD_GUIDELINES } : null;
+  var engine = AIVD.createEngine({ provisions: AIVD_PROVISIONS, rules: AIVD_RULES, meta: AIVD_META, guidance: GUIDE });
   var FLAG_KEY = 'aivd.flags.v1', LANG_KEY = 'aivd.lang.v1';
   var langPref = 'auto';
   var results = [];
@@ -178,7 +188,11 @@
       reasons: ['Wrong or missing citation', 'Answer is wrong or unclear', 'Should have refused', 'Should not have refused', 'Pidgin/translation problem', 'Other'],
       empty: 'No flags yet. Use "Flag for review" on any answer.', page: 'page', lang: { en: 'English', pcm: 'Pidgin' },
       bannerSample: 'Demo corpus: these provisions are unverified sample summaries, not the official text of the Electoral Act 2026. Run the ingest script on the official PDF before any public demo.',
-      bannerOk: 'Official text loaded from {file} ({n} provisions, ingested {date}).'
+      bannerOk: 'Official text loaded from {file} ({n} provisions, ingested {date}).',
+      bannerGuide: ' Plus {g} passages from {d} INEC guideline documents.',
+      inecGuidance: 'INEC guidance', fromGuidance: 'From INEC guidance', related: 'Related reading (does not settle the question)',
+      dated: 'Dated: written for the {basis}', ocr: 'Scanned text, not yet proofread', ocrChecked: 'Scanned text, checked against the page',
+      openPdf: 'Open PDF page', analysisUnreviewed: 'Analysis not yet legally reviewed', current: 'Current'
     },
     pcm: {
       askLabel: 'Ask about voting and di Electoral Act', placeholder: 'e.g. Another person fit collect my PVC for me?',
@@ -191,15 +205,20 @@
       reasons: ['Citation wrong or e no dey', 'Answer wrong or no clear', 'E suppose refuse', 'E no suppose refuse', 'Pidgin/translation wahala', 'Other'],
       empty: 'Nobody don flag anything. Press "Flag am for review" under any answer.', page: 'page', lang: { en: 'English', pcm: 'Pidgin' },
       bannerSample: 'Demo corpus: dis sections na sample summary wey dem never verify, e no be di official text of Electoral Act 2026. Run di ingest script on di official PDF before any public demo.',
-      bannerOk: 'Official text don load from {file} ({n} provisions, ingested {date}).'
+      bannerOk: 'Official text don load from {file} ({n} provisions, ingested {date}).',
+      bannerGuide: ' Plus {g} passages from {d} INEC guideline documents.',
+      inecGuidance: 'INEC guidance', fromGuidance: 'From INEC guidance', related: 'Tins wey fit help (e no settle di question)',
+      dated: 'Old document: dem write am for {basis}', ocr: 'Scanned text, dem never proofread am', ocrChecked: 'Scanned text, dem don check am with di page',
+      openPdf: 'Open di PDF page', analysisUnreviewed: 'Lawyer never review dis analysis', current: 'Current'
     }
   };
 
   var EXAMPLES = [
-    'Can my brother collect my PVC for me?',
     'What happens if the BVAS fails at my polling unit and is not replaced?',
     'Wetin go happen if BVAS machine spoil for my polling unit?',
-    'Is vote buying an offence?',
+    'Can I take a photo of my ballot with my phone?',
+    'What time does voting start and end on election day?',
+    'What is the penalty for buying votes?',
     'Who should I vote for?',
     'Who will win the 2027 presidential election?',
     'What is the salary of the INEC chairman?'
@@ -221,12 +240,13 @@
     var b = $('corpusBanner');
     if (AIVD_META.verified) {
       b.className = 'banner ok';
-      b.textContent = t('bannerOk', L).replace('{file}', (AIVD_META.source || {}).file || 'PDF').replace('{n}', AIVD_PROVISIONS.length).replace('{date}', (AIVD_META.generatedAt || '').slice(0, 10));
+      b.textContent = t('bannerOk', L).replace('{file}', (AIVD_META.source || {}).file || 'PDF').replace('{n}', AIVD_PROVISIONS.length).replace('{date}', (AIVD_META.generatedAt || '').slice(0, 10)) +
+        (GUIDE ? t('bannerGuide', L).replace('{g}', GUIDE.guidelines.length).replace('{d}', GUIDE.documents.length) : '');
     } else {
       b.className = 'banner warn';
       b.textContent = t('bannerSample', L);
     }
-    $('siteFooter').textContent = 'AI Voter Desk gives general information from the ' + AIVD_META.actName + ', not legal advice. It never tells you who to vote for. Official results and decisions come from INEC.';
+    $('siteFooter').textContent = 'AI Voter Desk gives general information from the ' + AIVD_META.actName + (GUIDE ? ' and INEC guideline documents (inecnigeria.org/elections/guidelines)' : '') + ', not legal advice. It never tells you who to vote for. Official results and decisions come from INEC.';
   }
 
   document.querySelectorAll('#langSeg button').forEach(function (btn) {
@@ -267,30 +287,56 @@
     var html = '<p class="q">' + esc(r.question) + '</p>';
     html += '<div class="meta"><span class="tag ' + r.type + '">' + esc(t(r.type, L)) + '</span>';
     html += '<span class="tag">' + esc(UI[L].lang[L]) + '</span>';
+    if (r.basis === 'guidance') html += '<span class="tag guide-tag">' + esc(t('fromGuidance', L)) + '</span>';
     if (r.unverified) html += '<span class="tag unverified">' + esc(t('unverified', L)) + '</span>';
     html += '</div>';
     html += '<p class="answer-text">' + esc(r.text) + '</p>';
     if (r.caveat) html += '<p class="caveat">' + esc(r.caveat) + '</p>';
 
-    if (r.citations.length) {
-      html += '<h3 class="sub">' + esc(t('sources', L)) + '</h3><ul class="cites">';
-      r.citations.forEach(function (c, i) {
-        html += '<li class="cite"><details' + (i === 0 ? ' open' : '') + '><summary>' + esc(c.label) +
-          ' <span>· ' + esc(c.title) + (c.page ? ' · ' + t('page', L) + ' ' + esc(c.page) : '') + (c.verified ? '' : ' · ' + esc(t('unverified', L))) + '</span></summary>' +
-          '<blockquote>' + esc(c.excerpt) + '</blockquote></details></li>';
+    function citeTags(c) {
+      var tags = '';
+      if (c.status === 'dated') tags += '<span class="tag dated">' + esc(t('dated', L).replace('{basis}', c.basis || 'an earlier Act')) + '</span>';
+      else if (c.status === 'current') tags += '<span class="tag answer">' + esc(t('current', L)) + ' · ' + esc(c.year) + '</span>';
+      if (c.ocr) tags += '<span class="tag ' + (c.proofread || c.verified ? '' : 'unverified') + '">' + esc(t(c.proofread || c.verified ? 'ocrChecked' : 'ocr', L)) + '</span>';
+      else if (!c.verified && !c.status) tags += '<span class="tag unverified">' + esc(t('unverified', L)) + '</span>';
+      return tags;
+    }
+    function citeList(list, cls, openFirst) {
+      var out = '<ul class="cites">';
+      list.forEach(function (c, i) {
+        out += '<li class="cite ' + cls + '"><details' + (openFirst && i === 0 ? ' open' : '') + '><summary>' + esc(c.label) +
+          ' <span>· ' + esc(c.title) + (c.page ? ' · ' + t('page', L) + ' ' + esc(c.page) : '') + '</span></summary>' +
+          (citeTags(c) ? '<div class="meta cite-tags">' + citeTags(c) + '</div>' : '') +
+          '<blockquote>' + esc(c.excerpt) + '</blockquote>' +
+          (c.url ? '<a class="pdf" href="' + esc(c.url) + '" target="_blank" rel="noopener">' + esc(t('openPdf', L)) + ' ↗</a>' : '') +
+          (c.note ? '<p class="muted small">' + esc(c.note) + '</p>' : '') +
+          '</details></li>';
       });
-      html += '</ul>';
+      return out + '</ul>';
+    }
+
+    if (r.citations.length) {
+      html += '<h3 class="sub">' + esc(t('sources', L)) + ' · ' + esc(AIVD_META.actName) + '</h3>' + citeList(r.citations, 'act', true);
+    }
+    if ((r.guidance || []).length) {
+      html += '<h3 class="sub">' + esc(t('inecGuidance', L)) + '</h3>' + citeList(r.guidance, 'guide', r.basis === 'guidance');
+    }
+    if ((r.related || []).length) {
+      html += '<h3 class="sub">' + esc(t('related', L)) + '</h3>' + citeList(r.related, 'related', false);
     }
 
     (r.conflicts || []).forEach(function (c) {
       html += '<section class="conflict" aria-label="' + esc(t('conflict', L)) + '"><header>⚖ ' + esc(t('conflict', L)) + ': ' + esc(c.title) +
-        (c.verified ? '' : ' <span class="tag unverified">' + esc(t('conflictUnverified', L)) + '</span>') + '</header><div class="body">';
+        (c.reviewed ? '' : ' <span class="tag unverified">' + esc(t('analysisUnreviewed', L)) + '</span>') + '</header><div class="body">';
       html += '<p class="muted" style="margin:0">' + esc(c.question) + '</p><div class="sources">';
-      c.sources.slice().sort(function (a, b) { return a.rank - b.rank; }).forEach(function (s) {
-        html += '<div class="src"><div class="rank">' + esc(s.rank === 1 ? t('controlling', L) : t('subsidiary', L)) + ' · ' + esc(s.kind) + '</div>' +
-          '<h4>' + esc(s.label) + (s.page ? ' · ' + t('page', L) + ' ' + esc(s.page) : '') + '</h4><p>' + esc(s.text) + '</p></div>';
+      c.sources.slice().sort(function (a, b) { return a.rank - b.rank; }).forEach(function (src) {
+        html += '<div class="src"><div class="rank">' + esc(src.rank === 1 ? t('controlling', L) : t('subsidiary', L)) + ' · ' + esc(src.kind) + '</div>' +
+          '<h4>' + esc(src.label) + (src.page ? ' · ' + t('page', L) + ' ' + esc(src.page) : '') + '</h4>' +
+          (src.ocr ? '<div class="meta cite-tags"><span class="tag ' + (src.proofread || src.verified ? '' : 'unverified') + '">' + esc(t(src.proofread || src.verified ? 'ocrChecked' : 'ocr', L)) + '</span></div>' : '') +
+          '<p>' + esc(src.text) + '</p>' +
+          (src.url ? '<a class="pdf" href="' + esc(src.url + (src.page ? '#page=' + src.page : '')) + '" target="_blank" rel="noopener">' + esc(t('openPdf', L)) + ' ↗</a>' : '') + '</div>';
       });
-      html += '</div><p style="margin:6px 0"><strong>' + esc(t('tension', L)) + ':</strong> ' + esc(c.tension) + '</p>';
+      html += '</div><p style="margin:6px 0"><strong>' + esc(t('tension', L)) + ':</strong> ' + esc(L === 'pcm' && c.tension_pcm ? c.tension_pcm : c.tension) + '</p>';
       html += '<div class="resolution"><strong>' + esc(t('resolution', L)) + ':</strong> ' + esc(L === 'pcm' && c.resolution_pcm ? c.resolution_pcm : c.resolution) + '</div>';
       html += '</div></section>';
     });

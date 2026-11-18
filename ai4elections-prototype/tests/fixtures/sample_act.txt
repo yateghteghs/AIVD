@@ -2,58 +2,58 @@ Sample Act Gazette No. 1
 SAMPLE ACT FOR PARSER TESTING (NOT LAW)
 ARRANGEMENT OF SECTIONS
 PART I — PRELIMINARY
-1. Heading number 1
-2. Heading number 2
-3. Heading number 3
-4. Heading number 4
-5. Heading number 5
-6. Heading number 6
-7. Heading number 7
-8. Heading number 8
-9. Heading number 9
-10. Heading number 10
-11. Heading number 11
-12. Heading number 12
-13. Heading number 13
-14. Heading number 14
-15. Heading number 15
-16. Heading number 16
-17. Heading number 17
-18. Heading number 18
-19. Heading number 19
+1. Sample matter BA
+2. Sample matter CA
+3. Sample matter DA
+4. Sample matter EA
+5. Sample matter FA
+6. Sample matter GA
+7. Sample matter HA
+8. Sample matter IA
+9. Sample matter JA
+10. Sample matter KA
+11. Sample matter LA
+12. Sample offence
+13. Sample matter NA
+14. Sample matter OA
+15. Sample matter PA
+16. Sample matter QA
+17. Sample matter RA
+18. Sample matter SA
+19. Sample matter TA
 
 A 101Sample Act Gazette No. 2
-20. Heading number 20
-21. Heading number 21
-22. Heading number 22
-23. Heading number 23
-24. Heading number 24
-25. Heading number 25
-26. Heading number 26
-27. Heading number 27
-28. Heading number 28
-29. Heading number 29
-30. Heading number 30
-31. Heading number 31
-32. Heading number 32
-33. Heading number 33
-34. Heading number 34
-35. Heading number 35
-36. Heading number 36
-37. Heading number 37
-38. Heading number 38
-39. Heading number 39
-40. Heading number 40
-41. Heading number 41
+20. Sample matter UA
+21. Sample matter VA
+22. Sample matter WA
+23. Sample matter XA
+24. Sample matter YA
+25. Sample matter ZA
+26. Sample matter AB
+27. Sample matter BB
+28. Sample matter CB
+29. Sample matter DB
+30. Sample matter EB
+31. Sample matter FB
+32. Sample matter GB
+33. Sample matter HB
+34. Sample matter IB
+35. Sample matter JB
+36. Sample matter KB
+37. Sample matter LB
+38. Sample matter MB
+39. Sample matter NB
+40. Sample matter OB
+41. Sample matter PB
 
 A 102Sample Act Gazette No. 3
-42. Heading number 42
-43. Heading number 43
-44. Heading number 44
-45. Heading number 45
-46. Heading number 46
-47. Heading number 47
-48. Heading number 48
+42. Sample matter QB
+43. Sample matter RB
+44. Sample matter SB
+45. Sample matter TB
+46. Sample matter UB
+47. Accreditation of sample voters
+48. Sample matter WB
 SAMPLE ACT FOR PARSER TESTING (NOT LAW)
 BE IT ENACTED by the Sample Assembly as follows:
 PART I

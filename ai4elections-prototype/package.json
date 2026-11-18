@@ -4,10 +4,11 @@
   "private": true,
   "description": "AI Voter Desk (AIVD), the Index Prima AI4Elections prototype: cited answers to voter questions on the Electoral Act 2026 in English and Pidgin.",
   "scripts": {
-    "test": "node tests/run.js && python3 tests/test_ingest.py",
+    "test": "node tests/run.js && node tests/test_corpus.js && python3 tests/test_ingest.py",
     "eval": "node tests/run.js --verbose",
-    "ingest": "python3 scripts/ingest_act.py",
-    "serve": "python3 -m http.server 8080"
+    "ingest": "python3 scripts/ingest_act.py sources/Electoral-Act-2026.pdf",
+    "serve": "python3 -m http.server 8080",
+    "ingest:guidelines": "python3 scripts/ingest_guidelines.py --src-dir sources --download"
   },
   "license": "UNLICENSED"
 }

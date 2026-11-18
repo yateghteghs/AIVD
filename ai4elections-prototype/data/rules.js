@@ -74,28 +74,46 @@ var AIVD_RULES = {
   conflicts: [
     {
       id: 'conflict-s47-3',
-      triggers: ['s47-3'],
-      title: 'Section 47(3): accreditation device failure',
-      question: 'If the accreditation device fails at a polling unit and is not replaced, what happens, and when?',
-      verified: false,
+      triggers: ['s47-3', 'reg2026-26', 'reg2026-65', 'reg2026-66'],
+      title: 'Section 47(3): BVAS failure at a polling unit',
+      question: 'If the BVAS fails at a polling unit and is not replaced, is the election cancelled or does voting continue, when, and does it depend on the overall result?',
+      // Source texts are pulled live from the corpora (provisionId / guidanceId).
+      // The tension below is AIVD's reading of those texts and needs legal review.
+      reviewed: false,
       sources: [
         {
           rank: 1,
           label: 'Electoral Act 2026, s. 47(3)',
           kind: 'Act of the National Assembly',
-          provisionId: 's47-3', // text is filled from the provisions corpus at answer time
-          text: '[PLACEHOLDER] Official wording to be loaded from the Act via the ingest script.'
+          provisionId: 's47-3',
+          text: ''
         },
         {
           rank: 2,
-          label: 'INEC Regulations and Guidelines for the Conduct of Elections (edition and clause to confirm)',
-          kind: 'Subsidiary rules made by INEC',
-          text: '[PLACEHOLDER] The relevant clause on BVAS failure, replacement and rescheduling. Confirm the edition currently in force and quote it word for word.'
+          label: 'INEC Regulations and Guidelines 2026, para. 26(b)',
+          kind: 'Regulations made by INEC under the Act',
+          guidanceId: 'reg2026-26',
+          text: ''
+        },
+        {
+          rank: 2,
+          label: 'INEC Regulations and Guidelines 2026, para. 65',
+          kind: 'Regulations made by INEC under the Act',
+          guidanceId: 'reg2026-65',
+          text: ''
+        },
+        {
+          rank: 2,
+          label: 'INEC Regulations and Guidelines 2026, para. 66',
+          kind: 'Regulations made by INEC under the Act',
+          guidanceId: 'reg2026-66',
+          text: ''
         }
       ],
-      tension: '[TO VERIFY] Where the Act and the Regulations differ on the trigger, the timeline or the consequence (for example cancellation and rescheduling of the poll in that unit), they can give voters different answers.',
-      resolution: 'The Act is the controlling authority. Regulations and guidelines issued by INEC apply only to the extent that they are consistent with the Act. AI Voter Desk shows both sources, treats the Act as controlling, and does not rule on what happened at any specific polling unit; that is for INEC and, if disputed, the election tribunal.',
-      resolution_pcm: 'Na di Act get final say. INEC regulations and guidelines dey work only if dem agree with di Act. AI Voter Desk go show you both, take di Act as di main one, but e no go judge wetin happen for any particular polling unit — na INEC and tribunal get dat work.'
+      tension: 'The Act says the election in the unit "shall be cancelled" and a new one scheduled within 24 hours, but only "if the Commission is satisfied" that the unit could substantially affect the overall result. Para. 26(b) of the Regulations instead tells the Presiding Officer that, if no replacement BVAS arrives by 2:30pm, accreditation and voting "shall continue the following day", and it does not mention the "substantially affect" test. Para. 65 aligns with the Act (new election within 24 hours, no return until it holds), and para. 66 applies the test through the margin of lead: a return can be made if the PVCs collected in the affected units are fewer than the leading margin. So a voter can be told "voting continues tomorrow" at the polling unit, while the Act speaks of cancellation and a conditional fresh election.',
+      tension_pcm: 'Di Act talk say if BVAS spoil and dem no replace am, dem go cancel di election for dat unit and do new one inside 24 hours — but only if INEC see say di unit fit change di overall result. Para. 26(b) for di Regulations talk say if new BVAS no reach by 2:30pm, accreditation and voting go continue di next day, and e no mention dat condition. Para. 65 follow di Act (new election inside 24 hours), and para. 66 use margin of lead: if di PVCs wey dem collect for di affected units no reach di margin wey di leader take lead, dem fit still declare result.',
+      resolution: 'The Act is the controlling authority: INEC makes the Regulations under the Act, and they apply only to the extent that they are consistent with it. AI Voter Desk shows all three texts, treats s. 47(3) as controlling, and does not decide what happened at any particular polling unit; that is for INEC and, if disputed, the election tribunal.',
+      resolution_pcm: 'Na di Act get final say. INEC make di Regulations under di Act, so dem dey work only if dem agree with di Act. AI Voter Desk go show you all three, take s. 47(3) as di main one, but e no go judge wetin happen for any particular polling unit — na INEC and tribunal get dat work.'
     }
   ],
 
@@ -111,6 +129,14 @@ var AIVD_RULES = {
     extractiveLead: {
       en: 'The most relevant provision is {label}. Its wording is quoted below.',
       pcm: 'Di section wey near dis question pass na {label}. Di official wording dey below (for English).'
+    },
+    guidanceLead: {
+      en: 'The Electoral Act does not directly settle this, but INEC\'s guidance does: see {label}, quoted below.',
+      pcm: 'Di Electoral Act no talk am direct, but INEC guidance talk am: check {label} wey dey below (for English).'
+    },
+    guidanceCaveat: {
+      en: 'This comes from INEC guidance made under the Act, not from the Act itself. It is general information, not legal advice.',
+      pcm: 'Dis one come from INEC guidance wey dem make under di Act, e no be di Act itself. Na general information, e no be legal advice.'
     },
     caveat: {
       en: 'This is general information from the Electoral Act, not legal advice.',

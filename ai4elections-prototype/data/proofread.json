@@ -1,0 +1,20 @@
+{
+  "_doc": "Proofreading records for OCR'd guideline paragraphs, applied by scripts/ingest_guidelines.py. 'text'/'title' override the OCR output. Set \"verified\": true only after a person has compared the text word for word with the PDF page.",
+  "reg2026-26": {
+    "by": "AI-assisted check (Claude) against the scanned page; awaiting human confirmation",
+    "on": "2026-11-18",
+    "method": "Compared OCR text with page 14 of the PDF image; no differences found."
+  },
+  "reg2026-65": {
+    "title": "Postponement of Election Due to Non-Replacement of BVAS",
+    "by": "AI-assisted check (Claude) against the scanned page; awaiting human confirmation",
+    "on": "2026-11-18",
+    "method": "Compared OCR text with page 23 of the PDF image; restored the hyphen in 'non-replacement'."
+  },
+  "reg2026-66": {
+    "title": "Making a Return Notwithstanding Postponement Due to Non-Replacement of BVAS",
+    "by": "AI-assisted check (Claude) against the scanned page; awaiting human confirmation",
+    "on": "2026-11-18",
+    "method": "Compared OCR text with page 23 of the PDF image; restored the hyphen in 'non-replacement'."
+  }
+}

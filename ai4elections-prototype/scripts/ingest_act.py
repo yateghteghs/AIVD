@@ -39,10 +39,11 @@ ROOT = os.path.dirname(HERE)
 PAGE_BREAK = "\f"
 
 RE_PART = re.compile(r"^PART\s+([IVXLC]+)\b\s*[—–-]*\s*(.*)$")
-RE_SCHEDULE = re.compile(r"^(?:THE\s+)?(?:FIRST|SECOND|THIRD|FOURTH|FIFTH)?\s*SCHEDULE\b", re.I)
+RE_SCHEDULE = re.compile(r"^(?:THE\s+)?(?:FIRST|SECOND|THIRD|FOURTH|FIFTH)?\s*SCHEDULES?\b")
 # "47.—(1) A person", "47. The Commission", "47A.—(1)", "47. Title.—(1) text"
 RE_SECTION = re.compile(r"^(\d{1,3}[A-Z]?)\s?\.\s*(?:[—–-]+\s*)?(?=\(\d|[A-Z\"“(])(.*)$")
-RE_INLINE_TITLE = re.compile(r"^([A-Z][^.—–]{2,90}?)\.?\s*[—–]+\s*(.*)$")
+# Only "Title.—(1) text" counts as an inline heading; "Any person who —" is body text.
+RE_INLINE_TITLE = re.compile(r"^([A-Z][^.—–]{2,90}?)\.?\s*[—–]+\s*(\(1\).*)$")
 RE_SUBSECTION = re.compile(r"^\((\d{1,2}[A-Z]?)\)\s*(.*)$")
 RE_PAGE_NO = re.compile(r"^(?:[A-Z]\s?)?\d{1,4}$|^page\s+\d+(\s+of\s+\d+)?$", re.I)
 RE_BODY_START = re.compile(r"\b(BE IT )?ENACTED\b|\[\s*Commencement\s*\]|\bCommencement\.?\s*\]", re.I)
@@ -66,6 +67,72 @@ def extract_pages(pdf_path, layout=False):
         sys.exit("Need poppler's pdftotext or `pip install pdfplumber`.")
     with pdfplumber.open(pdf_path) as pdf:
         return [(p.extract_text() or "") for p in pdf.pages]
+
+
+def detect_margin_split(pdf):
+    """Find the x position of a right-hand marginal-note column, or None.
+
+    Nigerian Acts print section headings in the right margin, level with the
+    first line of the section. Plain text extraction interleaves them with the
+    legal text ("...to a Presiding Accreditation of Officer..."). We look for a
+    vertical gutter that almost no word crosses, with a thin column of words
+    to its right.
+    """
+    words, width = [], None
+    for p in pdf.pages:
+        width = width or p.width
+        words.extend(p.extract_words())
+    if not words or not width:
+        return None
+    total = len(words)
+    best = None
+    straddles = []
+    for x in range(int(width * 0.55), int(width * 0.92), 2):
+        straddle = sum(1 for w in words if w["x0"] < x < w["x1"])
+        right = sum(1 for w in words if w["x0"] >= x)
+        straddles.append(straddle)
+        if 0.01 * total <= right <= 0.25 * total and (best is None or straddle < best[1]):
+            best = (x, straddle)
+    if best is None:
+        return None
+    straddles.sort()
+    median = straddles[len(straddles) // 2] or 1
+    return best[0] if best[1] <= 0.05 * median else None
+
+
+def extract_pages_columns(pdf_path, split=None):
+    """Body text only (left of the marginal-note column) plus the split used."""
+    import pdfplumber  # type: ignore
+    with pdfplumber.open(pdf_path) as pdf:
+        if split is None:
+            split = detect_margin_split(pdf)
+        if not split:
+            return None, None
+        pages = []
+        for p in pdf.pages:
+            pages.append(p.crop((0, 0, min(split, p.width), p.height)).extract_text() or "")
+        return pages, split
+
+
+def parse_toc(cleaned):
+    """Section titles from the 'Arrangement of Sections' (before the enacted body)."""
+    pi0, li0 = find_body_start(cleaned)
+    titles, last = {}, None
+    for pi, (_, lines) in enumerate(cleaned):
+        if pi > pi0:
+            break
+        for li, l in enumerate(lines):
+            if pi == pi0 and li >= li0:
+                break
+            m = re.match(r"^(\d{1,3}[A-Z]?)\.\s+([A-Z].*)$", l)
+            if m:
+                last = m.group(1)
+                titles[last] = m.group(2).strip()
+            elif last and l and l[:1].islower():
+                titles[last] += " " + l.strip()
+            elif not l or RE_PART.match(l):
+                last = None
+    return titles
 
 
 def sha256(path):
@@ -183,8 +250,13 @@ def parse(cleaned, max_gap=3):
             mp = RE_PART.match(line)
             if mp:
                 title = mp.group(2).strip()
-                if not title and li + 1 < len(lines):
-                    title = lines[li + 1].strip()
+                # Part headings are in capitals and may wrap onto following lines.
+                nxt = li + 1
+                while nxt < len(lines) and lines[nxt] and lines[nxt] == lines[nxt].upper() \
+                        and re.search(r"[A-Z]{3}", lines[nxt]) and not RE_SECTION.match(lines[nxt]) \
+                        and not RE_PART.match(lines[nxt]) and len(title) < 150:
+                    title = (title + " " + lines[nxt].strip()).strip()
+                    nxt += 1
                 part = ("Part " + mp.group(1) + (" — " + title.title() if title else "")).strip()
                 pending_title = None
                 continue
@@ -260,9 +332,13 @@ def topic_for(title, text, topic_map):
     return best
 
 
-def build_records(sections, topic_map, summaries):
+def build_records(sections, topic_map, summaries, toc=None, extra_keywords=None):
+    extra_keywords = extra_keywords or {}
     recs, seen = [], set()
+    toc = toc or {}
     for s in sections:
+        if s["section"] in toc:
+            s["title"] = toc[s["section"]]
         subs = split_subsections(s)
         for sub_no, text in subs:
             rid = "s%s-%s" % (s["section"], sub_no) if sub_no else "s%s" % s["section"]
@@ -281,6 +357,9 @@ def build_records(sections, topic_map, summaries):
                 "page": s["page"],
                 "verified": True,
             }
+            for kw in extra_keywords.get(rid, []):
+                if kw not in rec["keywords"]:
+                    rec["keywords"].append(kw)
             summ = summaries.get(rid)
             if summ:
                 if summ.get("en"):
@@ -315,6 +394,8 @@ def main():
     ap.add_argument("--out", default=os.path.join(ROOT, "data", "provisions.js"))
     ap.add_argument("--act-name", default="Electoral Act 2026")
     ap.add_argument("--layout", action="store_true", help="use pdftotext -layout (try if marginal notes are lost)")
+    ap.add_argument("--margin-x", type=float, help="x (points) where the marginal-note column starts; auto-detected if omitted")
+    ap.add_argument("--no-columns", action="store_true", help="disable marginal-column detection")
     ap.add_argument("--max-gap", type=int, default=3, help="largest jump in section numbers accepted as real")
     ap.add_argument("--summaries", default=os.path.join(ROOT, "data", "summaries.json"))
     ap.add_argument("--report", help="write the ingest report as JSON")
@@ -328,7 +409,16 @@ def main():
         with open(a.from_text, encoding="utf-8") as f:
             pages = f.read().split(PAGE_BREAK)
     else:
-        pages = extract_pages(a.pdf, layout=a.layout)
+        pages, split = (None, None)
+        if not a.layout and not a.no_columns:
+            try:
+                pages, split = extract_pages_columns(a.pdf, a.margin_x)
+            except ImportError:
+                pages = None
+        if pages:
+            print("Marginal-note column detected at x=%s pt; using body text only." % split)
+        else:
+            pages = extract_pages(a.pdf, layout=a.layout)
 
     chars = sum(len(p.strip()) for p in pages)
     if chars < 200 * max(1, len(pages)) * 0.2:
@@ -343,7 +433,13 @@ def main():
 
     cleaned = clean_pages(pages)
     sections, anomalies = parse(cleaned, max_gap=a.max_gap)
-    records = build_records(sections, topic_map, summaries)
+    toc = parse_toc(cleaned)
+    kw_path = os.path.join(ROOT, "data", "keywords.json")
+    extra_keywords = {}
+    if os.path.exists(kw_path):
+        with open(kw_path, encoding="utf-8") as f:
+            extra_keywords = {k: v for k, v in json.load(f).items() if not k.startswith("_")}
+    records = build_records(sections, topic_map, summaries, toc, extra_keywords)
 
     for s in sections:
         if not s["title"]:
