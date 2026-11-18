@@ -120,7 +120,10 @@
   .flagitem { border-bottom: 1px solid var(--border); padding: 8px 0; font-size: 14px; }
   .flagitem:last-child { border-bottom: 0; }
   .muted { color: var(--muted); }
-  footer.site { color: var(--muted); font-size: 12px; padding: 0 0 24px; }
+  footer.site { color: var(--muted); font-size: 12px; padding: 16px 0 28px; border-top: 1px solid var(--border); }
+  footer.site p { margin: 0 0 8px; }
+  .footlinks { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; }
+  .footlinks a, .privacy a { color: var(--brand); }
 </style>
 </head>
 <body>
@@ -153,11 +156,18 @@
       <button class="btn primary" type="submit" id="askBtn" data-i18n="ask">Ask</button>
     </div>
     <div class="chips" id="chips" aria-label="Example questions"></div>
-    <p class="privacy" id="privacyNote" hidden data-i18n="privacy"></p>
+    <p class="privacy" id="privacyNote" hidden><span data-i18n="privacy"></span> <a href="privacy.html" data-i18n="privacyMore">How we handle questions</a></p>
   </form>
 
   <section id="feed" aria-live="polite" aria-label="Answers"></section>
-  <footer class="site wrap" id="siteFooter"></footer>
+  <footer class="site" id="siteFooterWrap">
+    <p id="siteFooter"></p>
+    <nav class="footlinks" aria-label="Site">
+      <a href="privacy.html" data-i18n="privacyLink">Privacy notice</a>
+      <a href="terms.html" data-i18n="termsLink">Terms of use</a>
+      <a href="admin.html" data-i18n="reviewerLink">Reviewer sign-in</a>
+    </nav>
+  </footer>
 </main>
 
 <dialog id="queueDlg" aria-labelledby="queueTitle">
@@ -201,7 +211,8 @@
       dated: 'Dated: written for the {basis}', ocr: 'Scanned text, not yet proofread', ocrChecked: 'Scanned text, checked against the page',
       openPdf: 'Open PDF page', analysisUnreviewed: 'Analysis not yet legally reviewed', current: 'Current',
       helpful: 'Was this helpful?', yes: 'Yes', no: 'No', thanksUp: 'Thanks!', thanksDown: 'Thanks. Tell us what was wrong below (optional).',
-      privacy: 'Questions are recorded anonymously to improve AI Voter Desk. Please don\'t type names, phone numbers or other personal details.'
+      privacy: 'Questions are recorded anonymously to improve AI Voter Desk. Please don\'t type names, phone numbers or other personal details.',
+      privacyMore: 'How we handle questions', privacyLink: 'Privacy notice', termsLink: 'Terms of use', reviewerLink: 'Reviewer sign-in'
     },
     pcm: {
       askLabel: 'Ask about voting and di Electoral Act', placeholder: 'e.g. Another person fit collect my PVC for me?',
@@ -220,7 +231,8 @@
       dated: 'Old document: dem write am for {basis}', ocr: 'Scanned text, dem never proofread am', ocrChecked: 'Scanned text, dem don check am with di page',
       openPdf: 'Open di PDF page', analysisUnreviewed: 'Lawyer never review dis analysis', current: 'Current',
       helpful: 'E help you?', yes: 'Yes', no: 'No', thanksUp: 'Thank you!', thanksDown: 'Thank you. Tell us wetin wrong for below (if you like).',
-      privacy: 'We dey keep di questions without your name to make AI Voter Desk better. Abeg no type your name, phone number or any personal tori.'
+      privacy: 'We dey keep di questions without your name to make AI Voter Desk better. Abeg no type your name, phone number or any personal tori.',
+      privacyMore: 'How we dey handle questions', privacyLink: 'Privacy notice', termsLink: 'Terms of use', reviewerLink: 'Reviewer sign-in'
     }
   };
 

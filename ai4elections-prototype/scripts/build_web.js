@@ -10,7 +10,7 @@ const path = require('path');
 
 const app = path.join(__dirname, '..');
 const out = path.join(app, '..', 'dist');
-const files = ['index.html', 'admin.html', 'engine.js', 'data/provisions.js', 'data/rules.js', 'data/guidelines.js'];
+const files = ['index.html', 'admin.html', 'privacy.html', 'terms.html', 'engine.js', 'data/provisions.js', 'data/rules.js', 'data/guidelines.js'];
 
 fs.rmSync(out, { recursive: true, force: true });
 for (const f of files) {

@@ -41,6 +41,8 @@ npm test
 ai4elections-prototype/
 ├── index.html               Web app (single file: UI, review queue, conflict panel)
 ├── admin.html               Review Desk for reviewers (/admin): stats, chart, flag triage
+├── privacy.html             Privacy notice (/privacy), linked from every page footer
+├── terms.html               Terms of use (/terms), linked from every page footer
 ├── config.js                Runtime settings (Supabase URL/anon key; generated on Vercel)
 ├── engine.js                Answer engine: language detection, guardrails, BM25 retrieval, citations
 ├── data/
@@ -251,6 +253,7 @@ Every flag is saved in the browser's `localStorage` (shown under **Review queue*
 - [ ] Pidgin strings reviewed by a native speaker
 - [ ] Demo questions rehearsed against the real corpus
 - [ ] Team names and roles added below
+- [ ] Contact details added to `privacy.html` and `terms.html`, and the data-retention period in the privacy notice confirmed
 
 ## Team
 

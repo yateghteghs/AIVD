@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIVD Privacy Notice</title>
+<meta name="description" content="How AI Voter Desk handles the questions you ask.">
+<style>
+  :root { --bg: #f6f7f5; --surface: #ffffff; --text: #17201b; --muted: #5b665f; --border: #d9ded8; --brand: #0b7a4b; --brand-ink: #ffffff; --soft: #e2f2ea; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0f1412; --surface: #171d1a; --text: #e6ece8; --muted: #9aa69f; --border: #2c3631; --brand: #3fbf86; --brand-ink: #062015; --soft: #173326; color-scheme: dark; } }
+  :root[data-theme="dark"] { --bg: #0f1412; --surface: #171d1a; --text: #e6ece8; --muted: #9aa69f; --border: #2c3631; --brand: #3fbf86; --brand-ink: #062015; --soft: #173326; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+  header .wrap { display: flex; align-items: center; gap: 10px; min-height: 58px; }
+  .logo { width: 46px; height: 34px; border-radius: 9px; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; font-weight: 700; font-size: 12px; text-decoration: none; }
+  header a.home { color: var(--text); text-decoration: none; font-weight: 600; }
+  main { padding: 24px 0 40px; }
+  h1 { font-size: 28px; line-height: 1.2; margin: 0 0 4px; text-wrap: balance; }
+  h2 { font-size: 18px; margin: 28px 0 8px; }
+  p, li { max-width: 68ch; }
+  .updated { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+  .summary { background: var(--soft); border-radius: 12px; padding: 14px 16px; }
+  .summary ul { margin: 6px 0 0; padding-left: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 8px 0; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 13px; color: var(--muted); }
+  .scroll { overflow-x: auto; }
+  a { color: var(--brand); }
+  footer { border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; padding: 16px 0 32px; }
+  footer a { margin-right: 14px; }
+</style>
+</head>
+<body>
+<header><div class="wrap"><a class="logo" href="index.html" aria-label="AI Voter Desk home">AIVD</a><a class="home" href="index.html">AI Voter Desk</a></div></header>
+<main class="wrap">
+  <h1>Privacy notice</h1>
+  <p class="updated">Last updated: 18 November 2026 · Prototype version</p>
+
+  <div class="summary">
+    <strong>In short</strong>
+    <ul>
+      <li>You don't need an account, and we never ask for your name, phone number or email.</li>
+      <li>We record the questions people ask, and how AI Voter Desk answered them, without linking them to you. We use this to fix gaps and mistakes.</li>
+      <li>Please don't type personal details into your question.</li>
+    </ul>
+  </div>
+
+  <h2>Who we are</h2>
+  <p>AI Voter Desk (AIVD) is a prototype built by Index Prima for the Rise Networks AI4Elections hackathon. It answers questions about voting using the Electoral Act 2026 and published INEC guidance. It is an independent project and is not run by INEC.</p>
+
+  <h2>What we collect</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>What</th><th>When</th><th>What it contains</th></tr></thead>
+    <tbody>
+      <tr><td>Your question</td><td>Every time you ask one</td><td>The text you typed, the language detected (English or Pidgin), how AIVD responded (answered, not covered or declined), which sections it cited, and the time.</td></tr>
+      <tr><td>Your rating</td><td>If you tap 👍 or 👎</td><td>The rating, the question it refers to and the time.</td></tr>
+      <tr><td>A flag</td><td>If you use "Flag for review"</td><td>The question, the answer shown, the reason you chose, and any note you add.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Each question gets a random ID so that a rating can be matched to it. That ID is not linked to you, your device or any account. AIVD does not store IP addresses, and it does not use cookies, advertising trackers or third-party analytics.</p>
+  <p><strong>Please don't include personal details</strong> (names, phone numbers, addresses, PVC or NIN numbers) in your question or notes. If you do, they will be stored as part of the text.</p>
+
+  <h2>What stays on your device</h2>
+  <p>Your browser remembers your language choice and keeps a copy of any flags you submit, so you can see them under "Review queue". This stays on your device; you can clear it with your browser's settings.</p>
+
+  <h2>Why we use it</h2>
+  <ul>
+    <li>To find questions AIVD can't answer yet and add the right sources.</li>
+    <li>To find and correct wrong or unclear answers.</li>
+    <li>To check that AIVD declines requests for voting advice, predictions or election manipulation correctly, and doesn't decline legitimate questions.</li>
+    <li>To report overall usage figures (for example, how many questions were asked in Pidgin). These figures never identify anyone.</li>
+  </ul>
+
+  <h2>Who can see it</h2>
+  <p>Only reviewers invited by the AIVD team can see recorded questions, ratings and flags, through a password-protected review page. We don't sell or share this information.</p>
+  <p>The service runs on Vercel (website hosting) and Supabase (database). Like any website host, they process technical information such as IP addresses to deliver pages and keep the service secure, under their own privacy policies. AIVD itself does not store that information.</p>
+
+  <h2>How long we keep it</h2>
+  <p>We keep recorded questions, ratings and flags only for as long as they are needed to improve AIVD during the pilot, and delete them when the pilot ends.</p>
+
+  <h2>Your rights</h2>
+  <p>Under the Nigeria Data Protection Act 2023 you can ask us about information we hold about you and ask us to correct or delete it. Because questions are recorded without any link to you, we usually can't tell which ones are yours. If you included personal details in a question, contact us with the question text and roughly when you asked it, and we will delete it.</p>
+
+  <h2>Changes</h2>
+  <p>If we change how AIVD handles information, we will update this page and the date at the top.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about this notice: contact the Index Prima AIVD team. Contact details will be added here before public launch.</p>
+</main>
+<footer><div class="wrap"><a href="index.html">AI Voter Desk</a><a href="terms.html">Terms of use</a><a href="admin.html">Reviewer sign-in</a></div></footer>
+</body>
+</html>
