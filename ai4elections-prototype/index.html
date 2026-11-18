@@ -333,6 +333,14 @@
   // Shared review queue: when config.js has Supabase settings, flags are also
   // inserted into the "flags" table (insert-only for the public; see supabase/schema.sql).
   var CFG = window.AIVD_CONFIG || {};
+  // Legacy anon keys are JWTs ("eyJ…") and go in both headers; new publishable
+  // keys ("sb_publishable_…") go in apikey only.
+  function supabaseHeaders(key) {
+    var h = { 'Content-Type': 'application/json', apikey: key, Prefer: 'return=minimal' };
+    if (/^eyJ/.test(key)) h.Authorization = 'Bearer ' + key;
+    return h;
+  }
+
   function sendFlag(rec) {
     if (!CFG.supabaseUrl || !CFG.supabaseAnonKey) return Promise.resolve(false);
     var row = {
@@ -342,7 +350,7 @@
     };
     return fetch(CFG.supabaseUrl.replace(/\/$/, '') + '/rest/v1/flags', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: CFG.supabaseAnonKey, Authorization: 'Bearer ' + CFG.supabaseAnonKey, Prefer: 'return=minimal' },
+      headers: supabaseHeaders(CFG.supabaseAnonKey),
       body: JSON.stringify(row)
     }).then(function (res) { return res.ok; }).catch(function () { return false; });
   }

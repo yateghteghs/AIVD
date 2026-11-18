@@ -72,7 +72,7 @@ The app is a static site. **Vercel** hosts it and redeploys on every push. **Sup
 
 1. Create a project at <https://supabase.com/dashboard>. The free tier is enough.
 2. Open **SQL Editor → New query**, paste `supabase/schema.sql`, and click **Run**. This creates the `flags` table with row-level security: the public app can only *insert* flags, never read or change them.
-3. Under **Project Settings → API**, copy the **Project URL** and the **anon public** key.
+3. Under **Project Settings → API**, copy the **Project URL** and the public key: either the **publishable** key (`sb_publishable_…`) or the legacy **anon public** key (`eyJ…`). Both work.
 4. In Vercel, go to **Project → Settings → Environment Variables** and add `SUPABASE_URL` and `SUPABASE_ANON_KEY`, then redeploy (**Deployments → ⋯ → Redeploy**).
 5. Flags now show "Sent to the review team". Reviewers read them in Supabase under **Table Editor → flags** (filter by `status`, set `reviewer`/`resolution`, export CSV).
 
