@@ -61,6 +61,7 @@ ai4elections-prototype/
 ├── supabase/
 │   ├── schema.sql           1st migration: flags table + insert-only row-level security
 │   ├── 002_dashboard.sql    2nd migration: question log, feedback, reviewers, triage rights
+│   ├── 003_team.sql         3rd migration: reviewer / super admin roles
 │   └── tests/run.sh         Runs both migrations on a local PostgreSQL and checks the security rules
 └── tests/
     ├── questions.json       52-question evaluation set
@@ -122,7 +123,22 @@ Open `/admin?demo` to see it with generated sample data, no Supabase needed.
    ```
 6. The reviewer opens `/admin`, enters their email and clicks the emailed sign-in link.
 
-To remove a reviewer: `delete from public.reviewers where email = '…';`.
+### Team management (super admins)
+
+Super admins see a **Team** panel at the bottom of the Review Desk, where they can invite people by email, change roles (Reviewer / Super admin) and remove access, with no SQL needed. The panel calls a small server function on Vercel (`/api/team`, in the repo's top-level `api/` folder). That function checks that the caller is a super admin, and only then uses the Supabase **secret** key, which is stored in a server-only Vercel variable and never sent to browsers. There must always be at least one super admin, and nobody can remove themselves.
+
+One-time setup:
+
+1. **Supabase → SQL Editor**: run `supabase/003_team.sql`.
+2. **Make yourself the first super admin** (SQL Editor, your own email):
+   ```sql
+   update public.reviewers set role = 'super_admin' where email = 'you@example.com';
+   ```
+3. **Supabase → Project Settings → API Keys → Secret keys**: create a new secret key (`sb_secret_…`) and copy it.
+4. **Vercel → Settings → Environment Variables**: add `SUPABASE_SECRET_KEY` with that value (Production ticked). Only the server function reads this variable; the build never writes it into any page. Never put it in `SUPABASE_ANON_KEY`.
+5. **Redeploy** in Vercel.
+
+Invites are sent by Supabase's email service. Its built-in sender is heavily rate-limited, so set up your own SMTP (Supabase → Authentication → Emails → SMTP Settings) before inviting a whole team.
 
 Check the security rules locally at any time (needs PostgreSQL installed):
 

@@ -39,4 +39,22 @@ do $$ begin update public.flags set question='tampered'; raise exception 'FAIL r
 do $$ begin update public.flags set status='deleted'; raise exception 'FAIL bad status accepted'; exception when check_violation or insufficient_privilege then raise notice 'OK invalid status rejected'; end $$;
 do $$ begin delete from public.flags; if found then raise exception 'FAIL reviewer deleted'; end if; raise notice 'OK reviewer delete removed nothing'; exception when insufficient_privilege then raise notice 'OK reviewer cannot delete'; end $$;
 reset role;
+
+-- 4. roles (003_team.sql)
+update public.reviewers set role = 'super_admin' where email = 'rev@example.org';
+set role authenticated;
+select set_config('request.jwt.claim.sub','11111111-1111-1111-1111-111111111111',false);
+select 'super admin is_super_admin: ' || public.is_super_admin();
+do $$ begin perform public.user_id_by_email('rev@example.org'); raise exception 'FAIL browser can look up emails'; exception when insufficient_privilege then raise notice 'OK signed-in users cannot look up accounts by email'; end $$;
+do $$ begin update public.reviewers set role = 'super_admin'; raise exception 'FAIL reviewer changed roles'; exception when insufficient_privilege then raise notice 'OK reviewers cannot change roles from the browser'; end $$;
+select set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',false);
+select 'stranger is_super_admin: ' || public.is_super_admin();
+reset role;
+set role anon;
+do $$ begin perform public.user_id_by_email('rev@example.org'); raise exception 'FAIL anon can look up emails'; exception when insufficient_privilege then raise notice 'OK anon cannot look up accounts by email'; end $$;
+reset role;
+set role service_role;
+select 'server lookup finds: ' || coalesce(public.user_id_by_email('REV@example.org')::text, 'nothing');
+reset role;
+do $$ begin update public.reviewers set role = 'boss'; raise exception 'FAIL bad role accepted'; exception when check_violation then raise notice 'OK invalid role rejected'; end $$;
 \echo ALL RLS CHECKS DONE

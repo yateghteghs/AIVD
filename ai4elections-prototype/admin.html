@@ -84,7 +84,7 @@
   th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
   th { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .scroll { overflow-x: auto; }
+  .scroll { overflow-x: auto; position: relative; }
   .q { overflow-wrap: anywhere; }
   .tag { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
   .tag.answer { background: var(--brand-soft); color: var(--brand); }
@@ -103,6 +103,15 @@
   .flag details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
   .flag blockquote { margin: 6px 0 0; padding-left: 10px; border-left: 3px solid var(--border); font-size: 13px; overflow-wrap: anywhere; }
   .saved { font-size: 13px; color: var(--brand); }
+  .teamform { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .teamform input { flex: 1 1 220px; min-width: 0; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+  .teamform select, .teamrole { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+  .teammsg { min-height: 1.4em; margin: 8px 0; font-size: 14px; }
+  .teammsg.ok { color: var(--brand); } .teammsg.err { color: var(--danger); }
+  .btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); }
+  .btn.danger.confirm { background: var(--danger); color: var(--surface); border-color: var(--danger); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tag.super { background: var(--info-soft); color: var(--info); }
   .adminfoot { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; padding-bottom: 28px; }
   .adminfoot a { color: var(--brand); }
   details.tableview summary { cursor: pointer; font-size: 13px; color: var(--muted); margin-top: 8px; }
@@ -188,6 +197,21 @@
         </div>
         <div id="flags"></div>
       </section>
+
+      <section class="panel" id="teamPanel" style="margin-top:16px" hidden>
+        <h2>Team</h2>
+        <p class="sub">Who can use the Review Desk. Only super admins see this panel.</p>
+        <form class="teamform" id="inviteForm">
+          <label for="inviteEmail" class="muted">Invite by email</label>
+          <input id="inviteEmail" type="email" required placeholder="name@example.org" autocomplete="off">
+          <label for="inviteRole" class="sr">Role</label>
+          <select id="inviteRole"><option value="reviewer">Reviewer</option><option value="super_admin">Super admin</option></select>
+          <button class="btn primary" type="submit" id="inviteBtn">Send invite</button>
+        </form>
+        <p id="teamMsg" class="teammsg" aria-live="polite"></p>
+        <div class="scroll" id="teamList"><p class="empty">Loading team…</p></div>
+        <p class="sub" style="margin:12px 0 0">Reviewers can see the dashboard and triage flags. Super admins can also invite and remove people. Removing someone takes away their dashboard access; their sign-in account stays in Supabase.</p>
+      </section>
     </div>
   </main>
 </div>
@@ -208,7 +232,7 @@
   var BASE = (CFG.supabaseUrl || '').replace(/\/$/, '');
   var KEY = CFG.supabaseAnonKey || '';
   var SESSION_KEY = 'aivd.admin.session';
-  var state = { days: 7, flagStatus: 'open', questions: [], feedback: [], flags: [], email: '' };
+  var state = { days: 7, flagStatus: 'open', questions: [], feedback: [], flags: [], email: '', role: 'reviewer', team: [], me: null };
 
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
@@ -519,15 +543,110 @@
 
   // ---------------- startup ----------------
   function showSignin() { $('dash').hidden = true; $('signOut').hidden = true; $('who').textContent = ''; $('signinPanel').hidden = false; }
-  function showDash(email) {
-    state.email = email; $('who').textContent = email; $('signOut').hidden = false;
+  function showDash(email, role) {
+    state.email = email; state.role = role || 'reviewer';
+    $('who').textContent = email + (state.role === 'super_admin' ? ' · super admin' : '');
+    $('signOut').hidden = false;
     $('signinPanel').hidden = true; $('dash').hidden = false; load();
+    $('teamPanel').hidden = state.role !== 'super_admin';
+    if (state.role === 'super_admin') loadTeam();
+  }
+
+  // ---------------- team (super admins) ----------------
+  var DEMO_TEAM = [
+    { user_id: 'd1', email: 'demo@aivd.local', role: 'super_admin', added_at: '2026-11-18T10:00:00Z', invited_by: null },
+    { user_id: 'd2', email: 'reviewer.one@example.org', role: 'reviewer', added_at: '2026-11-18T11:00:00Z', invited_by: 'demo@aivd.local' }
+  ];
+  function teamApi(method, body) {
+    if (DEMO) return demoTeamApi(method, body);
+    return validSession().then(function (s) {
+      if (!s) throw new Error('signed_out');
+      return fetch('/api/team', {
+        method: method,
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.access_token },
+        body: body ? JSON.stringify(body) : undefined
+      });
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (r.status === 401) { ss(SESSION_KEY, null); throw new Error('signed_out'); }
+        if (!r.ok) { var e = new Error(j.error || ('Request failed (' + r.status + ')')); e.code = j.code; throw e; }
+        return j;
+      });
+    });
+  }
+  function teamMsg(text, kind) { var m = $('teamMsg'); m.textContent = text || ''; m.className = 'teammsg ' + (kind || ''); }
+  function loadTeam() {
+    teamApi('GET').then(function (j) { state.team = j.members || []; state.me = j.me; renderTeam(); })
+      .catch(function (err) {
+        if (err.message === 'signed_out') return showSignin();
+        $('teamList').innerHTML = '';
+        if (err.code === 'not_configured') {
+          teamMsg('Team management isn\'t switched on yet. Add SUPABASE_SECRET_KEY in Vercel (see the README), then redeploy.', 'err');
+          $('inviteForm').hidden = true;
+        } else teamMsg(err.message, 'err');
+      });
+  }
+  function renderTeam() {
+    var meId = state.me && state.me.user_id;
+    $('teamList').innerHTML = '<table><thead><tr><th>Email</th><th>Role</th><th>Added</th><th>Invited by</th><th><span class="sr">Actions</span></th></tr></thead><tbody>' +
+      state.team.map(function (m) {
+        var self = m.user_id === meId;
+        return '<tr data-id="' + esc(m.user_id) + '"><td class="q">' + esc(m.email) + (self ? ' <span class="tag">You</span>' : '') + '</td>' +
+          '<td>' + (self ? '<span class="tag ' + (m.role === 'super_admin' ? 'super' : '') + '">' + (m.role === 'super_admin' ? 'Super admin' : 'Reviewer') + '</span>'
+            : '<select class="teamrole" aria-label="Role for ' + esc(m.email) + '"><option value="reviewer"' + (m.role === 'reviewer' ? ' selected' : '') + '>Reviewer</option><option value="super_admin"' + (m.role === 'super_admin' ? ' selected' : '') + '>Super admin</option></select>') + '</td>' +
+          '<td class="num">' + esc(m.added_at ? new Date(m.added_at).toLocaleDateString() : '–') + '</td>' +
+          '<td>' + esc(m.invited_by || '–') + '</td>' +
+          '<td class="num">' + (self ? '' : '<button type="button" class="btn danger remove">Remove</button>') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    $('teamList').querySelectorAll('tr[data-id]').forEach(function (row) {
+      var id = row.getAttribute('data-id'), sel = row.querySelector('.teamrole'), rm = row.querySelector('.remove');
+      if (sel) sel.addEventListener('change', function () {
+        sel.disabled = true;
+        teamApi('POST', { action: 'role', user_id: id, role: sel.value })
+          .then(function (j) { state.team = j.members; renderTeam(); teamMsg(j.message, 'ok'); })
+          .catch(function (err) { sel.disabled = false; renderTeam(); teamMsg(err.message === 'signed_out' ? 'Please sign in again.' : err.message, 'err'); });
+      });
+      if (rm) rm.addEventListener('click', function () {
+        if (!rm.classList.contains('confirm')) {          // two-step: first click asks, second click removes
+          rm.classList.add('confirm'); rm.textContent = 'Confirm remove';
+          setTimeout(function () { if (rm.isConnected) { rm.classList.remove('confirm'); rm.textContent = 'Remove'; } }, 4000);
+          return;
+        }
+        rm.disabled = true;
+        teamApi('POST', { action: 'remove', user_id: id })
+          .then(function (j) { state.team = j.members; renderTeam(); teamMsg(j.message, 'ok'); })
+          .catch(function (err) { rm.disabled = false; teamMsg(err.message === 'signed_out' ? 'Please sign in again.' : err.message, 'err'); });
+      });
+    });
+  }
+  $('inviteForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var email = $('inviteEmail').value.trim(), role = $('inviteRole').value;
+    $('inviteBtn').disabled = true; teamMsg('Sending invite…');
+    teamApi('POST', { action: 'invite', email: email, role: role })
+      .then(function (j) { state.team = j.members; renderTeam(); teamMsg(j.message, 'ok'); $('inviteEmail').value = ''; })
+      .catch(function (err) { teamMsg(err.message === 'signed_out' ? 'Please sign in again.' : err.message, 'err'); })
+      .then(function () { $('inviteBtn').disabled = false; });
+  });
+  function demoTeamApi(method, body) {
+    var t = DEMO_TEAM, me = t[0];
+    var done = function (msg) { return Promise.resolve({ ok: true, message: msg + ' (demo only, nothing was sent)', members: t.slice(), me: me }); };
+    if (method === 'GET') return done('');
+    var target = t.find(function (m) { return m.user_id === body.user_id; });
+    if (body.action === 'invite') {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) return Promise.reject(new Error('Enter a valid email address.'));
+      t.push({ user_id: 'd' + (t.length + 1), email: body.email.toLowerCase(), role: body.role, added_at: new Date().toISOString(), invited_by: me.email });
+      return done('Invite sent to ' + body.email + '.');
+    }
+    if (body.action === 'role') { target.role = body.role; return done(target.email + ' is now ' + (body.role === 'super_admin' ? 'a super admin.' : 'a reviewer.')); }
+    if (body.action === 'remove') { DEMO_TEAM = t = t.filter(function (m) { return m !== target; }); return done(target.email + ' no longer has access to the Review Desk.'); }
+    return Promise.reject(new Error('Unknown action.'));
   }
 
   function start() {
     if (DEMO) {
       notice('Demo mode: the numbers below are generated sample data, not real AIVD usage.', 'warn');
-      showDash('demo@aivd.local');
+      showDash('demo@aivd.local', 'super_admin');
       return;
     }
     if (!BASE || !KEY) {
@@ -549,13 +668,18 @@
     if (fromUrl) ss(SESSION_KEY, fromUrl);
     validSession().then(function (s) {
       if (!s) { showSignin(); return; }
-      return Promise.all([api('/auth/v1/user'), api('/rest/v1/reviewers?select=email')]).then(function (res) {
+      // role needs supabase/003_team.sql; fall back to plain membership if it hasn't been run
+      var me = api('/rest/v1/reviewers?select=email,role').catch(function (err) {
+        if (err && err.message === 'signed_out') throw err;
+        return api('/rest/v1/reviewers?select=email');
+      });
+      return Promise.all([api('/auth/v1/user'), me]).then(function (res) {
         var user = res[0] || {}, rev = res[1] || [];
         if (!rev.length) {
           notice('You are signed in as ' + (user.email || 'this account') + ', but it is not on the reviewer list. Ask an admin to add you (see the README).', 'err');
           $('who').textContent = user.email || ''; $('signOut').hidden = false; return;
         }
-        showDash(user.email || rev[0].email);
+        showDash(user.email || rev[0].email, rev[0].role);
       });
     }).catch(handleError);
   }

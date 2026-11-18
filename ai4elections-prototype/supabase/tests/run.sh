@@ -22,7 +22,9 @@ $P -f "$HERE/supabase_stub.sql"
 $P -f "$HERE/../schema.sql" 2>/dev/null
 $P -f "$HERE/../002_dashboard.sql" 2>/dev/null
 $P -f "$HERE/../002_dashboard.sql" 2>/dev/null   # must be safe to run twice
+$P -f "$HERE/../003_team.sql" 2>/dev/null
+$P -f "$HERE/../003_team.sql" 2>/dev/null
 OUT="$($P -t -f "$HERE/rls_test.sql" 2>&1)"
-echo "$OUT" | grep -E "OK |FAIL|sees|is_reviewer|status now|resolved by" | sed 's/^psql:[^ ]* NOTICE:  /  /'
+echo "$OUT" | grep -E "OK |FAIL|sees|is_reviewer|is_super_admin|status now|resolved by|lookup finds" | sed 's/^psql:[^ ]* NOTICE:  /  /'
 if echo "$OUT" | grep -q "FAIL"; then echo "Database checks FAILED"; exit 1; fi
 echo "$OUT" | grep -q "ALL RLS CHECKS DONE" && echo "Database checks: all passed"
