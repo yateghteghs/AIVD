@@ -74,9 +74,17 @@
     lost: ['replacement'], replace: ['replacement'], replacement: ['replacement']
   };
 
+  // Fold accents so Yoruba, Igbo and Hausa match with or without diacritics
+  // (ẹ→e, ọ→o, ṣ→s, ụ→u, ị→i, ń→n) plus the Hausa hooked letters.
+  var SPECIAL = { 'ɗ': 'd', 'ƙ': 'k', 'ɓ': 'b', 'ƴ': 'y', 'ŋ': 'n' };
+  function fold(s) {
+    return String(s || '').toLowerCase()
+      .replace(/[ɗƙɓƴŋ]/g, function (c) { return SPECIAL[c]; })
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
   function normalize(s) {
-    return String(s || '')
-      .toLowerCase()
+    return fold(s)
       .replace(/[‘’]/g, "'")
       .replace(/[“”]/g, '"')
       .replace(/[^a-z0-9'()\s-]/g, ' ')
@@ -93,7 +101,8 @@
 
   function stem(w) {
     if (STEM_EXCEPTIONS[w]) return STEM_EXCEPTIONS[w];
-    if (w.length <= 4 || /^\d+$/.test(w)) return w;
+    if (/^\d+$/.test(w)) return w;
+    if (w.length <= 4) return w.length === 4 ? w.replace(/(e|s)$/, '') : w;   // vote/votes/voter/voting -> vot
     var m = w.match(/^(.{3,}?)(ations|ation|ings|ing|ies|ers|er|ed|es|s|e)$/);
     var base = m ? m[1] : w;
     return base.length > 6 ? base.slice(0, 6) : base;
@@ -134,10 +143,23 @@
     [/\bno fit\b/, 1], [/\b(help|tell|give|carry|show|take) am\b/, 1], [/\bwho go\b/, 1]
   ];
 
+  var LANG_MARKERS = { pcm: PIDGIN_MARKERS };
+
   function detectLanguage(q) {
-    var n = normalize(q);
-    var score = PIDGIN_MARKERS.reduce(function (c, m) { return c + (m[0].test(n) ? m[1] : 0); }, 0);
-    return score >= 2 ? 'pcm' : 'en';
+    var n = normalize(q), best = 'en', bestScore = 1;
+    Object.keys(LANG_MARKERS).forEach(function (lang) {
+      var score = LANG_MARKERS[lang].reduce(function (c, m) { return c + (m[0].test(n) ? m[1] : 0); }, 0);
+      if (score > bestScore) { best = lang; bestScore = score; }
+    });
+    return best;
+  }
+
+  // Merge a language pack (data/languages.js): detection markers, stopwords, lexicon.
+  function registerLanguagePack(pack) {
+    if (!pack) return;
+    Object.keys(pack.markers || {}).forEach(function (l) { LANG_MARKERS[l] = pack.markers[l]; });
+    (pack.stopwords || []).forEach(function (w) { if (w && !LEXICON[w]) STOPWORDS.add(w); });
+    Object.keys(pack.lexicon || {}).forEach(function (w) { if (!LEXICON[w]) LEXICON[w] = pack.lexicon[w]; });
   }
 
   // ---------------------------------------------------------------------------
@@ -160,14 +182,26 @@
 
   function search(index, query, k, vocabulary) {
     var qTerms = Array.from(new Set(expand(tokenize(query), true)));
-    var baseTerms = Array.from(new Set(tokenize(query).map(stem)));
+    // Each meaningful word of the question, with the stems it may match: its own stem
+    // plus the stems of its synonyms (looked up by the whole word, then by its stem).
+    var seen = Object.create(null);
+    var base = [];
+    tokenize(query).forEach(function (w) {
+      var st = stem(w);
+      if (seen[st]) return;
+      seen[st] = true;
+      var v = [st].concat((LEXICON[w] || LEXICON[st] || []).map(stem));
+      if (/^\d{1,2}$/.test(w)) v = v.concat(['age', 'years', 'attained'].map(stem));
+      base.push({ stem: st, variants: v });
+    });
+    var baseTerms = base.map(function (b) { return b.stem; });
     var k1 = 1.4, b = 0.75;
     // A content word that appears nowhere in the corpus (and has no synonym that does)
     // usually means the question is about something the documents don't cover, so it
     // counts double against coverage.
     var vocab = vocabulary || index.df;
-    var denom = baseTerms.reduce(function (n, t) {
-      var variants = [t].concat((LEXICON[t] || []).map(stem));
+    var denom = base.reduce(function (n, b) {
+      var t = b.stem, variants = b.variants;
       var known = /^\d+$/.test(t) || variants.some(function (v) { return vocab[v]; });
       return n + (known || t.length < 5 ? 1 : 2);
     }, 0);
@@ -179,12 +213,11 @@
         var idf = Math.log(1 + (index.N - index.df[t] + 0.5) / (index.df[t] + 0.5));
         score += idf * (f * (k1 + 1)) / (f + k1 * (1 - b + b * d.len / index.avgLen));
       });
-      baseTerms.forEach(function (t) {
-        var variants = [t].concat((LEXICON[t] || []).map(stem));
-        if (/^\d{1,2}$/.test(t)) variants = variants.concat(['age', 'years', 'attained'].map(stem));
+      base.forEach(function (b) {
+        var variants = b.variants;
         if (variants.some(function (v) { return d.tf[v]; })) matchedBase++;
       });
-      return { p: d.p, score: score, coverage: denom ? matchedBase / denom : 0 };
+      return { p: d.p, score: score, coverage: denom ? matchedBase / denom : 0, matched: matchedBase };
     });
     scored.sort(function (a, b2) { return b2.score - a.score; });
     return { hits: scored.slice(0, k || 3), queryTerms: baseTerms };
@@ -232,12 +265,16 @@
     return (best > 0 ? '… ' : '') + out + (out.length < text.length ? ' …' : '');
   }
 
+  // Message in the requested language, falling back to English when not translated yet.
+  function msg(obj, lang) { return (obj && (obj[lang] || obj.en)) || ''; }
+
   function createEngine(opts) {
+    registerLanguagePack(opts.languagePack);
     var provisions = opts.provisions;
     var rules = opts.rules;
     var meta = opts.meta || {};
     var actName = meta.actName || 'Electoral Act 2026';
-    var T = Object.assign({ minScore: 2.2, minCoverage: 0.6, relatedMinCoverage: 0.4, relatedRatio: 0.6, maxCitations: 3 }, opts.thresholds || {});
+    var T = Object.assign({ minScore: 2.2, minCoverage: 0.6, relatedMinCoverage: 0.4, guidanceMinTerms: 3, relatedRatio: 0.6, maxCitations: 3 }, opts.thresholds || {});
     var index = buildIndex(provisions);
     var M = rules.messages;
 
@@ -291,12 +328,12 @@
       var base = { question: q, lang: lang, citations: [], conflicts: [], unverified: false, askedAt: new Date().toISOString() };
 
       if (q.length < 3) {
-        return Object.assign(base, { type: 'not_covered', reason: 'empty', text: M.empty[lang] });
+        return Object.assign(base, { type: 'not_covered', reason: 'empty', text: msg(M.empty, lang) });
       }
 
       var g = checkGuardrails(rules, q);
       if (g) {
-        return Object.assign(base, { type: 'refused', reason: g.id, text: g.message[lang], guardrail: g.id });
+        return Object.assign(base, { type: 'refused', reason: g.id, text: msg(g.message, lang), guardrail: g.id });
       }
 
       var r = search(index, q, 5, vocab);
@@ -355,13 +392,15 @@
         ).slice(0, T.maxCitations);
       } else if (!top || top.score < T.minScore || top.coverage < T.minCoverage) {
         // The Act doesn't settle it. Current INEC guidance may; dated guidance never does on its own.
-        if (gCurrent.length) {
-          var gc = gCurrent.slice(0, 2).map(citeGuidance);
+        // Guidance alone may answer only when it matches at least 3 meaningful words of the question.
+        var gAlone = gCurrent.filter(function (h) { return h.matched >= T.guidanceMinTerms; });
+        if (gAlone.length) {
+          var gc = gAlone.slice(0, 2).map(citeGuidance);
           return Object.assign(base, {
             type: 'answer',
             basis: 'guidance',
-            text: (M.guidanceLead[lang] || M.guidanceLead.en).replace('{label}', gc[0].label),
-            caveat: M.guidanceCaveat[lang],
+            text: msg(M.guidanceLead, lang).replace('{label}', gc[0].label),
+            caveat: msg(M.guidanceCaveat, lang),
             citations: [],
             guidance: gc,
             conflicts: conflictsFor(new Set(gc.map(function (c) { return c.id; }))),
@@ -373,7 +412,7 @@
         var related = r.hits.filter(function (h) { return h.score >= T.minScore && h.coverage >= T.relatedMinCoverage; })
           .slice(0, 2).map(function (h) { return cite(h.p); })
           .concat(guidanceCites.slice(0, 1));
-        return Object.assign(base, { type: 'not_covered', reason: 'low_confidence', text: M.notCovered[lang], related: related, debug: debug });
+        return Object.assign(base, { type: 'not_covered', reason: 'low_confidence', text: msg(M.notCovered, lang), related: related, debug: debug });
       } else {
         chosen = r.hits.filter(function (h, i) {
           return i === 0 || (h.score >= top.score * T.relatedRatio && h.coverage >= T.minCoverage);
@@ -383,12 +422,12 @@
       var citations = chosen.map(function (h) { return cite(h.p); });
 
       var lead = chosen[0].p;
-      var summary = (lang === 'pcm' ? lead.summary_pcm : lead.summary_en) || null;
+      var summary = lead['summary_' + lang] || (lang === 'en' ? lead.summary_en : null) || null;
       var text;
       if (summary) {
         text = summary;
       } else {
-        text = (lang === 'pcm' ? M.extractiveLead.pcm : M.extractiveLead.en).replace('{label}', citations[0].label);
+        text = msg(M.extractiveLead, lang).replace('{label}', citations[0].label);
       }
 
       var ids = new Set(citations.map(function (c) { return c.id; }).concat(guidanceCites.map(function (c) { return c.id; })));
@@ -397,7 +436,7 @@
         type: 'answer',
         basis: 'act',
         text: text,
-        caveat: M.caveat[lang],
+        caveat: msg(M.caveat, lang),
         citations: citations,
         guidance: guidanceCites,
         conflicts: conflictsFor(ids),
@@ -432,6 +471,7 @@
   return {
     createEngine: createEngine,
     detectLanguage: detectLanguage,
+    registerLanguagePack: registerLanguagePack,
     makeFlagRecord: makeFlagRecord,
     _internals: { tokenize: tokenize, expand: expand, normalize: normalize, stem: stem }
   };

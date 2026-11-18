@@ -332,6 +332,7 @@
   }
 
   // ---------------- rendering ----------------
+  var LANG_NAMES = { en: 'English', pcm: 'Pidgin', yo: 'Yorùbá', ig: 'Igbo', ha: 'Hausa', tiv: 'Tiv' };
   var SERIES = [
     { key: 'answer', label: 'Answered', color: 'var(--s-answer)' },
     { key: 'not_covered', label: 'Not covered', color: 'var(--s-nc)' },
@@ -343,7 +344,11 @@
     $('loaded').textContent = q.length + ' questions loaded' + (q.length >= 5000 ? ' (latest 5,000)' : '');
     var by = { answer: 0, not_covered: 0, refused: 0 };
     q.forEach(function (x) { if (by[x.type] != null) by[x.type]++; });
-    var pcm = q.filter(function (x) { return x.lang === 'pcm'; }).length;
+    var byLang = {};
+    q.forEach(function (x) { if (x.lang && x.lang !== 'en') byLang[x.lang] = (byLang[x.lang] || 0) + 1; });
+    var nonEn = Object.keys(byLang).reduce(function (n, k) { return n + byLang[k]; }, 0);
+    var langNote = Object.keys(byLang).sort(function (a, b) { return byLang[b] - byLang[a]; })
+      .map(function (k) { return LANG_NAMES[k] + ' ' + byLang[k]; }).join(' · ') || 'none yet';
     var up = f.filter(function (x) { return x.rating > 0; }).length, down = f.length - up;
     var open = state.flags.filter(function (x) { return x.status === 'open'; }).length;
     var tiles = [
@@ -351,7 +356,7 @@
       ['Answered', pct(by.answer, q.length), by.answer.toLocaleString() + ' questions'],
       ['Not covered', pct(by.not_covered, q.length), by.not_covered.toLocaleString() + ' questions'],
       ['Refused', pct(by.refused, q.length), by.refused.toLocaleString() + ' questions'],
-      ['In Pidgin', pct(pcm, q.length), pcm.toLocaleString() + ' questions'],
+      ['Not in English', pct(nonEn, q.length), langNote],
       ['Rated helpful', pct(up, f.length), up + ' 👍 · ' + down + ' 👎'],
       ['Open flags', String(open), state.flags.length + ' flags in total']
     ];
@@ -455,7 +460,7 @@
     });
     var rows = Object.keys(groups).map(function (k) { return groups[k]; }).sort(function (a, b) { return b.n - a.n || (b.last > a.last ? 1 : -1); }).slice(0, 15);
     $('topNc').innerHTML = rows.length ? '<table><thead><tr><th>Question</th><th class="num">Times</th><th class="num">Last asked</th></tr></thead><tbody>' +
-      rows.map(function (r) { return '<tr><td class="q">' + esc(r.text) + (r.lang === 'pcm' ? ' <span class="tag">Pidgin</span>' : '') + '</td><td class="num">' + r.n + '</td><td class="num">' + esc(new Date(r.last).toLocaleDateString()) + '</td></tr>'; }).join('') +
+      rows.map(function (r) { return '<tr><td class="q">' + esc(r.text) + (r.lang && r.lang !== 'en' ? ' <span class="tag">' + esc(LANG_NAMES[r.lang] || r.lang) + '</span>' : '') + '</td><td class="num">' + r.n + '</td><td class="num">' + esc(new Date(r.last).toLocaleDateString()) + '</td></tr>'; }).join('') +
       '</tbody></table>' : '<p class="empty">No "Not covered" questions in this period.</p>';
   }
   function renderUnhelpful() {
@@ -485,7 +490,7 @@
       return '<article class="flag" data-id="' + esc(fl.id) + '">' +
         '<div class="meta"><span class="tag ' + esc(fl.status) + '">' + esc(STATUS[fl.status] || fl.status) + '</span>' +
         '<span class="tag ' + esc(fl.type) + '">' + esc(typeLabel(fl.type)) + '</span>' +
-        (fl.lang === 'pcm' ? '<span class="tag">Pidgin</span>' : '') +
+        (fl.lang && fl.lang !== 'en' ? '<span class="tag">' + esc(LANG_NAMES[fl.lang] || fl.lang) + '</span>' : '') +
         '<span class="muted">' + esc(fl.category || 'Flag') + ' · ' + esc(new Date(fl.created_at || fl.flagged_at).toLocaleString()) + '</span></div>' +
         '<div class="q"><strong>' + esc(fl.question) + '</strong></div>' +
         (fl.note ? '<div class="q">Note: ' + esc(fl.note) + '</div>' : '') +
@@ -698,7 +703,10 @@
       ['Abeg how old person suppose be to vote?', 'pcm', 'answer', 'act'],
       ['Can IDPs vote in their camps?', 'en', 'not_covered', null],
       ['How do I transfer my registration to Lagos?', 'en', 'answer', 'act'],
-      ['Which party go win for Kano?', 'pcm', 'refused', null, 'prediction']
+      ['Which party go win for Kano?', 'pcm', 'refused', null, 'prediction'],
+      ['Ta ni kí n dìbò fún?', 'yo', 'refused', null, 'voting_advice'],
+      ['Shekara nawa ake bukata kafin a yi zaɓe?', 'ha', 'answer', 'act'],
+      ['Afọ ole ka m ga-adị tupu m tụọ vootu?', 'ig', 'answer', 'act']
     ];
     var seed = 7, rnd = function () { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
     var questions = [], feedback = [], n = state.days || 45;
@@ -715,7 +723,7 @@
     var flags = [
       { id: 'flag_demo1', created_at: new Date().toISOString(), status: 'open', category: 'Answer is wrong or unclear', note: 'It should mention the 2:30pm cut-off.', question: 'What happens if the BVAS fails at my polling unit and is not replaced?', lang: 'en', type: 'answer', answer: 'The most relevant provision is Electoral Act 2026, s. 47(3).', citations: ['Electoral Act 2026, s. 47(3)', 'INEC Regulations and Guidelines 2026, para. 26'] },
       { id: 'flag_demo2', created_at: new Date(Date.now() - 864e5).toISOString(), status: 'open', category: 'Should not have refused', note: '', question: 'Can I report vote buying anonymously?', lang: 'en', type: 'not_covered', answer: 'Not covered.', citations: [] },
-      { id: 'flag_demo3', created_at: new Date(Date.now() - 3 * 864e5).toISOString(), status: 'resolved', category: 'Pidgin/translation problem', note: 'Wording sounds odd', question: 'Wetin be PVC?', lang: 'pcm', type: 'not_covered', answer: 'E no dey cover am.', citations: [], reviewer: 'demo@aivd.local', resolution: 'Added "pvc" keywords', reviewed_at: new Date(Date.now() - 2 * 864e5).toISOString() }
+      { id: 'flag_demo3', created_at: new Date(Date.now() - 3 * 864e5).toISOString(), status: 'resolved', category: 'Translation problem', note: 'Wording sounds odd', question: 'Wetin be PVC?', lang: 'pcm', type: 'not_covered', answer: 'E no dey cover am.', citations: [], reviewer: 'demo@aivd.local', resolution: 'Added "pvc" keywords', reviewed_at: new Date(Date.now() - 2 * 864e5).toISOString() }
     ];
     return { questions: questions, feedback: feedback, flags: flags };
   }

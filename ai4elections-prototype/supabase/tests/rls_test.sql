@@ -57,4 +57,14 @@ set role service_role;
 select 'server lookup finds: ' || coalesce(public.user_id_by_email('REV@example.org')::text, 'nothing');
 reset role;
 do $$ begin update public.reviewers set role = 'boss'; raise exception 'FAIL bad role accepted'; exception when check_violation then raise notice 'OK invalid role rejected'; end $$;
+
+-- 5. languages (004_languages.sql)
+set role anon;
+insert into public.questions (id,question,lang,type) values (gen_random_uuid(),'Ta ni kí n dìbò fún?','yo','refused');
+insert into public.feedback (rating,lang,type) values (1,'ha','answer');
+insert into public.flags (id,question,lang,type) values ('flag_t2','Onye ka m ga-atụrụ vootu?','ig','refused');
+insert into public.questions (id,question,lang,type) values (gen_random_uuid(),'Tiv question','tiv','answer');
+\echo   OK Yoruba, Hausa, Igbo and Tiv rows accepted
+do $$ begin insert into public.questions (id,question,lang,type) values (gen_random_uuid(),'x','fr','answer'); raise exception 'FAIL unlisted language accepted'; exception when insufficient_privilege or check_violation then raise notice 'OK unlisted language still rejected'; end $$;
+reset role;
 \echo ALL RLS CHECKS DONE

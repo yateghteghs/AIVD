@@ -1,9 +1,55 @@
 {
   "_doc": "Extra retrieval keywords for Act provisions, keyed by provision id, merged by scripts/ingest_act.py. Use the words voters actually use for a provision. Keywords only help find a provision; they are never shown as legal text.",
-  "s125-1": ["vote buying", "buy votes", "sell vote", "bribe voters", "money for votes", "share money"],
-  "s125-2": ["vote buying", "accept money to vote", "sell vote", "penalty"],
-  "s130-4": ["ballot box snatching", "snatch ballot box", "destroy ballot box"],
-  "s47-3": ["bvas failure", "bvas not working", "card reader failed", "machine failed"],
-  "s54-1": ["blind voter", "help to vote", "assisted voting", "pwd"],
-  "s12-1": ["voting age", "how old", "eligible to vote", "minimum age"]
+  "s125-1": [
+    "vote buying",
+    "buy votes",
+    "sell vote",
+    "bribe voters",
+    "money for votes",
+    "share money"
+  ],
+  "s125-2": [
+    "vote buying",
+    "accept money to vote",
+    "sell vote",
+    "penalty"
+  ],
+  "s130-4": [
+    "ballot box snatching",
+    "snatch ballot box",
+    "destroy ballot box"
+  ],
+  "s47-3": [
+    "bvas failure",
+    "bvas not working",
+    "card reader failed",
+    "machine failed"
+  ],
+  "s54-1": [
+    "blind voter",
+    "help to vote",
+    "assisted voting",
+    "pwd"
+  ],
+  "s12-1": [
+    "voting age",
+    "age to vote",
+    "under 18",
+    "eligible to vote"
+  ],
+  "s12-2": [
+    "register twice",
+    "register more than once",
+    "register in two places",
+    "double registration",
+    "multiple registration",
+    "different places"
+  ],
+  "s105": [
+    "contest",
+    "candidate",
+    "councillor",
+    "chairman",
+    "stand for election"
+  ]
 }

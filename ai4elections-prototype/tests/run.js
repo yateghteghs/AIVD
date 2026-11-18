@@ -15,20 +15,22 @@ const { meta, provisions } = require('../data/provisions');
 const rules = require('../data/rules');
 let guidance = null;
 try { guidance = require('../data/guidelines'); } catch (e) { /* optional */ }
+let languagePack = null;
+try { languagePack = require('../data/languages').pack; } catch (e) { /* optional */ }
 
 const args = process.argv.slice(2);
 const flag = (n) => args.includes(n);
 const val = (n) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
 
 const suite = JSON.parse(fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8'));
-const engine = AIVD.createEngine({ provisions, rules, meta, guidance });
+const engine = AIVD.createEngine({ provisions, rules, meta, guidance, languagePack });
 const byId = new Map(provisions.map((p) => [p.id, p]));
 
 let cases = suite.cases;
 if (val('--only')) cases = cases.filter((c) => c.id.startsWith(val('--only')));
 
 const results = cases.map((c) => {
-  const r = engine.ask(c.q);
+  const r = engine.ask(c.q, c.options || {});
   const e = c.expect;
   const problems = [];
   const types = [].concat(e.type);
@@ -57,7 +59,7 @@ results.forEach((r) => {
   groups[g].total++; if (r.pass) groups[g].pass++;
 });
 
-const label = { en: 'English answers', pcm: 'Pidgin answers', nc: 'Not covered', adv: 'Voting advice refusals', pred: 'Prediction refusals', man: 'Manipulation refusals' };
+const label = { en: 'English answers', pcm: 'Pidgin answers', yo: 'Yorùbá', ig: 'Igbo', ha: 'Hausa', tiv: 'Tiv (English fallback)', nc: 'Not covered', adv: 'Voting advice refusals', pred: 'Prediction refusals', man: 'Manipulation refusals' };
 console.log(`\nAI Voter Desk evaluation · corpus: ${meta.corpus}${meta.verified ? ' (verified)' : ' (UNVERIFIED SAMPLE)'} · ${provisions.length} provisions · ${guidance ? guidance.guidelines.length + ' INEC guidance records' : 'no guidance'}\n`);
 results.forEach((r) => {
   console.log(`${r.pass ? 'PASS' : 'FAIL'}  ${r.id.padEnd(8)} ${r.q}`);

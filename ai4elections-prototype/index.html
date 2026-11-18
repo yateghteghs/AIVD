@@ -41,6 +41,8 @@
   .logo { width: 46px; height: 34px; border-radius: 9px; letter-spacing: .02em; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; font-weight: 700; font-size: 12px; }
   .brand h1 { font-size: 18px; margin: 0; line-height: 1.1; }
   .brand small { color: var(--muted); font-size: 12px; display: block; }
+  .langpick select { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 14px; cursor: pointer; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
   .seg button { border: 0; background: transparent; padding: 6px 12px; cursor: pointer; font-size: 14px; }
   .seg button[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); }
@@ -136,11 +138,9 @@
         <small>Index Prima · AI4Elections</small>
       </div>
     </div>
-    <div class="seg" role="group" aria-label="Answer language" id="langSeg">
-      <button type="button" data-lang="auto" aria-pressed="true">Auto</button>
-      <button type="button" data-lang="en" aria-pressed="false">English</button>
-      <button type="button" data-lang="pcm" aria-pressed="false">Pidgin</button>
-    </div>
+    <label class="langpick"><span class="sr" data-i18n="language">Language</span>
+      <select id="langSel" aria-label="Language"></select>
+    </label>
     <button type="button" class="btn" id="queueBtn"><span data-i18n="queue">Review queue</span><span class="count" id="queueCount">0</span></button>
   </div>
 </header>
@@ -148,6 +148,7 @@
 <main class="wrap">
   <div id="corpusBanner" class="banner warn" role="note"></div>
 
+  <p id="langNotice" class="banner warn" hidden></p>
   <form class="ask" id="askForm" autocomplete="off">
     <label for="q" data-i18n="askLabel">Ask about voting and the Electoral Act</label>
     <textarea id="q" name="q" maxlength="600" data-i18n-ph="placeholder" placeholder="e.g. Can someone else collect my PVC for me?"></textarea>
@@ -183,12 +184,16 @@
 <script src="data/provisions.js"></script>
 <script src="data/rules.js"></script>
 <script src="data/guidelines.js"></script>
+<script src="data/languages.js"></script>
 <script src="engine.js"></script>
 <script>
 (function () {
   'use strict';
   var GUIDE = typeof AIVD_GUIDE_DOCS !== 'undefined' ? { documents: AIVD_GUIDE_DOCS, guidelines: AIVD_GUIDELINES } : null;
-  var engine = AIVD.createEngine({ provisions: AIVD_PROVISIONS, rules: AIVD_RULES, meta: AIVD_META, guidance: GUIDE });
+  var LANGS = typeof AIVD_LANGUAGES !== 'undefined' ? AIVD_LANGUAGES : [{ code: 'en', native: 'English', status: 'reviewed' }, { code: 'pcm', native: 'Pidgin', status: 'draft' }];
+  var LANG_BY = {}; LANGS.forEach(function (l) { LANG_BY[l.code] = l; });
+  var engine = AIVD.createEngine({ provisions: AIVD_PROVISIONS, rules: AIVD_RULES, meta: AIVD_META, guidance: GUIDE,
+    languagePack: typeof AIVD_LANGUAGE_PACK !== 'undefined' ? AIVD_LANGUAGE_PACK : null });
   var FLAG_KEY = 'aivd.flags.v1', LANG_KEY = 'aivd.lang.v1';
   var langPref = 'auto';
   var results = [];
@@ -202,7 +207,7 @@
       sources: 'Sources', conflict: 'Rule conflict', conflictUnverified: 'Sources not yet verified', tension: 'Where they can differ',
       resolution: 'How AIVD resolves it', controlling: 'Controlling', subsidiary: 'Subsidiary',
       flag: 'Flag for review', flagged: 'Flagged (saved in this browser)', flaggedShared: 'Sent to the review team', reason: 'What is wrong?', note: 'Note (optional)', submit: 'Submit flag', cancel: 'Cancel',
-      reasons: ['Wrong or missing citation', 'Answer is wrong or unclear', 'Should have refused', 'Should not have refused', 'Pidgin/translation problem', 'Other'],
+      reasons: ['Wrong or missing citation', 'Answer is wrong or unclear', 'Should have refused', 'Should not have refused', 'Translation problem', 'Other'],
       empty: 'No flags yet. Use "Flag for review" on any answer.', page: 'page', lang: { en: 'English', pcm: 'Pidgin' },
       bannerSample: 'Demo corpus: these provisions are unverified sample summaries, not the official text of the Electoral Act 2026. Run the ingest script on the official PDF before any public demo.',
       bannerOk: 'Official text loaded from {file} ({n} provisions, ingested {date}).',
@@ -212,7 +217,9 @@
       openPdf: 'Open PDF page', analysisUnreviewed: 'Analysis not yet legally reviewed', current: 'Current',
       helpful: 'Was this helpful?', yes: 'Yes', no: 'No', thanksUp: 'Thanks!', thanksDown: 'Thanks. Tell us what was wrong below (optional).',
       privacy: 'Questions are recorded anonymously to improve AI Voter Desk. Please don\'t type names, phone numbers or other personal details.',
-      privacyMore: 'How we handle questions', privacyLink: 'Privacy notice', termsLink: 'Terms of use', reviewerLink: 'Reviewer sign-in'
+      privacyMore: 'How we handle questions', privacyLink: 'Privacy notice', termsLink: 'Terms of use', reviewerLink: 'Reviewer sign-in',
+      language: 'Language', auto: 'Auto-detect', draftTag: 'Draft translation',
+      draftNotice: 'This translation is a draft and is being checked by native speakers. Quoted law stays in English.'
     },
     pcm: {
       askLabel: 'Ask about voting and di Electoral Act', placeholder: 'e.g. Another person fit collect my PVC for me?',
@@ -222,7 +229,7 @@
       sources: 'Where e come from', conflict: 'Rule conflict', conflictUnverified: 'Dem never verify di sources', tension: 'Where dem fit no agree',
       resolution: 'How AIVD dey settle am', controlling: 'Main authority', subsidiary: 'Under di Act',
       flag: 'Flag am for review', flagged: 'You don flag am (e dey only for dis browser)', flaggedShared: 'We don send am give review team', reason: 'Wetin wrong?', note: 'Note (if you like)', submit: 'Send flag', cancel: 'Cancel',
-      reasons: ['Citation wrong or e no dey', 'Answer wrong or no clear', 'E suppose refuse', 'E no suppose refuse', 'Pidgin/translation wahala', 'Other'],
+      reasons: ['Citation wrong or e no dey', 'Answer wrong or no clear', 'E suppose refuse', 'E no suppose refuse', 'Translation wahala', 'Other'],
       empty: 'Nobody don flag anything. Press "Flag am for review" under any answer.', page: 'page', lang: { en: 'English', pcm: 'Pidgin' },
       bannerSample: 'Demo corpus: dis sections na sample summary wey dem never verify, e no be di official text of Electoral Act 2026. Run di ingest script on di official PDF before any public demo.',
       bannerOk: 'Official text don load from {file} ({n} provisions, ingested {date}).',
@@ -232,9 +239,13 @@
       openPdf: 'Open di PDF page', analysisUnreviewed: 'Lawyer never review dis analysis', current: 'Current',
       helpful: 'E help you?', yes: 'Yes', no: 'No', thanksUp: 'Thank you!', thanksDown: 'Thank you. Tell us wetin wrong for below (if you like).',
       privacy: 'We dey keep di questions without your name to make AI Voter Desk better. Abeg no type your name, phone number or any personal tori.',
-      privacyMore: 'How we dey handle questions', privacyLink: 'Privacy notice', termsLink: 'Terms of use', reviewerLink: 'Reviewer sign-in'
+      privacyMore: 'How we dey handle questions', privacyLink: 'Privacy notice', termsLink: 'Terms of use', reviewerLink: 'Reviewer sign-in',
+      language: 'Language', auto: 'Auto-detect', draftTag: 'Draft Pidgin',
+      draftNotice: 'Dis Pidgin na draft; people wey sabi Pidgin well-well dey check am. Di law wey we quote dey for English.'
     }
   };
+
+  if (typeof AIVD_UI_STRINGS !== 'undefined') Object.keys(AIVD_UI_STRINGS).forEach(function (l) { UI[l] = AIVD_UI_STRINGS[l]; });
 
   var EXAMPLES = [
     'What happens if the BVAS fails at my polling unit and is not replaced?',
@@ -252,12 +263,29 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
   function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
   function uiLang() { return langPref === 'auto' ? 'en' : langPref; }
-  function t(key, lang) { return UI[lang || uiLang()][key]; }
+  function t(key, lang) {
+    var L = lang || uiLang(), pack = UI[L] || {};
+    return pack[key] !== undefined ? pack[key] : UI.en[key];   // untranslated text falls back to English
+  }
+  function langName(code) { return (LANG_BY[code] || {}).native || code; }
+  function langNotice(L) {
+    var info = LANG_BY[L];
+    if (!info || L === 'en' || info.status === 'reviewed') return '';
+    if (info.status === 'pending') return (UI[L] && UI[L].pendingNotice) || (info.native + ': translation coming soon. Shown in English for now.');
+    return t('draftNotice', L);
+  }
 
   // ---------- static UI ----------
   function applyUiLang() {
     var L = uiLang();
-    document.documentElement.lang = L === 'pcm' ? 'pcm' : 'en';
+    document.documentElement.lang = L;
+    var n = langNotice(L); $('langNotice').hidden = !n; $('langNotice').textContent = n;
+    var sel = $('langSel');
+    if (!sel.options.length) {
+      sel.innerHTML = '<option value="auto"></option>' + LANGS.map(function (l) { return '<option value="' + l.code + '">' + esc(l.native) + '</option>'; }).join('');
+    }
+    sel.options[0].textContent = t('auto', L) || 'Auto-detect';
+    sel.value = langPref;
     document.querySelectorAll('[data-i18n]').forEach(function (el) { el.textContent = t(el.getAttribute('data-i18n'), L); });
     document.querySelectorAll('[data-i18n-ph]').forEach(function (el) { el.placeholder = t(el.getAttribute('data-i18n-ph'), L); });
     var b = $('corpusBanner');
@@ -272,13 +300,10 @@
     $('siteFooter').textContent = 'AI Voter Desk gives general information from the ' + AIVD_META.actName + (GUIDE ? ' and INEC guideline documents (inecnigeria.org/elections/guidelines)' : '') + ', not legal advice. It never tells you who to vote for. Official results and decisions come from INEC.';
   }
 
-  document.querySelectorAll('#langSeg button').forEach(function (btn) {
-    btn.addEventListener('click', function () { setLang(btn.getAttribute('data-lang')); });
-  });
+  $('langSel').addEventListener('change', function () { setLang(this.value); });
   function setLang(l) {
     langPref = l;
     store(LANG_KEY, l);
-    document.querySelectorAll('#langSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === l)); });
     applyUiLang();
   }
 
@@ -311,7 +336,8 @@
     card.className = 'card';
     var html = '<p class="q">' + esc(r.question) + '</p>';
     html += '<div class="meta"><span class="tag ' + r.type + '">' + esc(t(r.type, L)) + '</span>';
-    html += '<span class="tag">' + esc(UI[L].lang[L]) + '</span>';
+    html += '<span class="tag">' + esc(langName(L)) + '</span>';
+    if (langNotice(L)) html += '<span class="tag unverified">' + esc(LANG_BY[L] && LANG_BY[L].status === 'pending' ? 'Shown in English' : t('draftTag', L)) + '</span>';
     if (r.basis === 'guidance') html += '<span class="tag guide-tag">' + esc(t('fromGuidance', L)) + '</span>';
     if (r.unverified) html += '<span class="tag unverified">' + esc(t('unverified', L)) + '</span>';
     html += '</div>';
@@ -488,7 +514,7 @@
 
   // ---------- init ----------
   var saved = store(LANG_KEY);
-  setLang(saved === 'en' || saved === 'pcm' ? saved : 'auto');
+  setLang(saved && (saved === 'auto' || LANG_BY[saved]) ? saved : 'auto');
   updateCount();
   $('privacyNote').hidden = !SHARED;
   var qs = new URLSearchParams(location.search).get('q');
