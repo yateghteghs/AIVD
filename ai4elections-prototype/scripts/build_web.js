@@ -26,13 +26,20 @@ function jwtRole(k) {
   try { return JSON.parse(Buffer.from(k.split('.')[1], 'base64url').toString()).role; } catch (e) { return null; }
 }
 const problems = [];
+// Short codes (never values) written into config.js so the site can explain itself.
+const codes = [];
+if (!process.env.SUPABASE_URL) codes.push('url_missing');
+if (!process.env.SUPABASE_ANON_KEY) codes.push('key_missing');
 if (url && !/^https:\/\/[a-z0-9-]+\.supabase\.(co|in)$|^https:\/\/[a-z0-9.-]+$/i.test(url)) {
+  codes.push(/^sb_/.test(url) ? 'url_is_a_key' : 'url_not_address');
   problems.push('SUPABASE_URL must be your project address, like https://abcdefgh.supabase.co (got something that is not a URL).');
 }
 if (/^sb_secret_/.test(key) || /^sb_secret_/.test(url) || jwtRole(key) === 'service_role') {
+  codes.push('key_is_secret');
   problems.push('SUPABASE_ANON_KEY is a SECRET key. Use the publishable key (sb_publishable_...) or the legacy anon key instead, and revoke the secret key in Supabase.');
 }
 if (key && !/^sb_publishable_/.test(key) && jwtRole(key) !== 'anon') {
+  if (!codes.includes('key_is_secret')) codes.push(/^https?:/.test(key) ? 'key_is_url' : 'key_not_publishable');
   problems.push('SUPABASE_ANON_KEY must be the publishable key (sb_publishable_...) or the legacy anon key.');
 }
 if (problems.length) {
@@ -43,7 +50,7 @@ if (problems.length) {
 }
 fs.writeFileSync(path.join(out, 'config.js'),
   '/* Generated at build time by scripts/build_web.js */\n' +
-  'window.AIVD_CONFIG = ' + JSON.stringify({ supabaseUrl: url, supabaseAnonKey: key }, null, 2) + ';\n');
+  'window.AIVD_CONFIG = ' + JSON.stringify({ supabaseUrl: url, supabaseAnonKey: key, configProblems: codes }, null, 2) + ';\n');
 
 const { meta } = require(path.join(app, 'data', 'provisions.js'));
 console.log(`Built ${files.length + 1} files into dist/ · corpus: ${meta.corpus}${meta.verified ? ' (verified)' : ' (SAMPLE)'} · shared review queue: ${url && key ? 'on' : 'off'}`);

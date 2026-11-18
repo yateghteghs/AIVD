@@ -530,7 +530,18 @@
       return;
     }
     if (!BASE || !KEY) {
-      notice('Supabase is not configured for this deployment, so there is no data to show. Set SUPABASE_URL and SUPABASE_ANON_KEY in Vercel and redeploy. Add ?demo to the address to preview the dashboard with sample data.', 'warn');
+      var why = {
+        url_missing: 'SUPABASE_URL was not available to the build. In Vercel → Settings → Environment Variables, check it exists and has "Production" ticked.',
+        key_missing: 'SUPABASE_ANON_KEY was not available to the build. In Vercel → Settings → Environment Variables, check it exists and has "Production" ticked.',
+        url_is_a_key: 'SUPABASE_URL contains a key. It should be your Project URL, like https://abcdefgh.supabase.co (Supabase → Project Settings → Data API).',
+        url_not_address: 'SUPABASE_URL is not a web address. It should look like https://abcdefgh.supabase.co (Supabase → Project Settings → Data API).',
+        key_is_secret: 'SUPABASE_ANON_KEY is a secret key, so it was blocked. Use the Publishable key (sb_publishable_…) and revoke the secret key in Supabase.',
+        key_is_url: 'SUPABASE_ANON_KEY contains a web address. It should be the Publishable key (sb_publishable_…) from Supabase → Project Settings → API Keys.',
+        key_not_publishable: 'SUPABASE_ANON_KEY is not a publishable key. Use the Publishable key (sb_publishable_…) from Supabase → Project Settings → API Keys.'
+      };
+      var probs = (CFG.configProblems || []).map(function (c) { return why[c] || c; });
+      notice((probs.length ? 'Supabase is not connected. ' + probs.join(' ') : 'Supabase is not connected for this deployment.') +
+        ' After fixing it, redeploy in Vercel (Deployments → ⋯ → Redeploy). Add ?demo to the address to preview the dashboard with sample data.', 'warn');
       return;
     }
     var fromUrl = readSessionFromUrl();
