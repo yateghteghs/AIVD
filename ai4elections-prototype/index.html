@@ -154,6 +154,7 @@
   </footer>
 </dialog>
 
+<script src="config.js"></script>
 <script src="data/provisions.js"></script>
 <script src="data/rules.js"></script>
 <script src="engine.js"></script>
@@ -173,7 +174,7 @@
       answer: 'Answer', not_covered: 'Not covered', refused: "Can't help with that", unverified: 'Unverified source text',
       sources: 'Sources', conflict: 'Rule conflict', conflictUnverified: 'Sources not yet verified', tension: 'Where they can differ',
       resolution: 'How AIVD resolves it', controlling: 'Controlling', subsidiary: 'Subsidiary',
-      flag: 'Flag for review', flagged: 'Flagged for review', reason: 'What is wrong?', note: 'Note (optional)', submit: 'Submit flag', cancel: 'Cancel',
+      flag: 'Flag for review', flagged: 'Flagged (saved in this browser)', flaggedShared: 'Sent to the review team', reason: 'What is wrong?', note: 'Note (optional)', submit: 'Submit flag', cancel: 'Cancel',
       reasons: ['Wrong or missing citation', 'Answer is wrong or unclear', 'Should have refused', 'Should not have refused', 'Pidgin/translation problem', 'Other'],
       empty: 'No flags yet. Use "Flag for review" on any answer.', page: 'page', lang: { en: 'English', pcm: 'Pidgin' },
       bannerSample: 'Demo corpus: these provisions are unverified sample summaries, not the official text of the Electoral Act 2026. Run the ingest script on the official PDF before any public demo.',
@@ -186,7 +187,7 @@
       answer: 'Answer', not_covered: 'E no dey cover am', refused: 'I no fit help with dis one', unverified: 'Dem never verify di text',
       sources: 'Where e come from', conflict: 'Rule conflict', conflictUnverified: 'Dem never verify di sources', tension: 'Where dem fit no agree',
       resolution: 'How AIVD dey settle am', controlling: 'Main authority', subsidiary: 'Under di Act',
-      flag: 'Flag am for review', flagged: 'You don flag am', reason: 'Wetin wrong?', note: 'Note (if you like)', submit: 'Send flag', cancel: 'Cancel',
+      flag: 'Flag am for review', flagged: 'You don flag am (e dey only for dis browser)', flaggedShared: 'We don send am give review team', reason: 'Wetin wrong?', note: 'Note (if you like)', submit: 'Send flag', cancel: 'Cancel',
       reasons: ['Citation wrong or e no dey', 'Answer wrong or no clear', 'E suppose refuse', 'E no suppose refuse', 'Pidgin/translation wahala', 'Other'],
       empty: 'Nobody don flag anything. Press "Flag am for review" under any answer.', page: 'page', lang: { en: 'English', pcm: 'Pidgin' },
       bannerSample: 'Demo corpus: dis sections na sample summary wey dem never verify, e no be di official text of Electoral Act 2026. Run di ingest script on di official PDF before any public demo.',
@@ -318,12 +319,32 @@
       flags.push(rec);
       store(FLAG_KEY, flags);
       updateCount();
-      f.outerHTML = '<p class="flagged">⚑ ' + esc(t('flagged', L)) + ' · ' + esc(rec.id) + '</p>';
       var btn = card.querySelector('.flagbtn'); if (btn) btn.disabled = true;
+      f.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+      sendFlag(rec).then(function (shared) {
+        f.outerHTML = '<p class="flagged">⚑ ' + esc(t(shared ? 'flaggedShared' : 'flagged', L)) + ' · ' + esc(rec.id) + '</p>';
+      });
     });
     f.querySelector('[data-cancel]').addEventListener('click', function () { f.remove(); });
     card.appendChild(f);
     f.reason.focus();
+  }
+
+  // Shared review queue: when config.js has Supabase settings, flags are also
+  // inserted into the "flags" table (insert-only for the public; see supabase/schema.sql).
+  var CFG = window.AIVD_CONFIG || {};
+  function sendFlag(rec) {
+    if (!CFG.supabaseUrl || !CFG.supabaseAnonKey) return Promise.resolve(false);
+    var row = {
+      id: rec.id, flagged_at: rec.flaggedAt, category: rec.category, note: rec.note,
+      question: rec.question, lang: rec.lang, type: rec.type, reason: rec.reason,
+      answer: rec.answer, citations: rec.citations, corpus: rec.corpus
+    };
+    return fetch(CFG.supabaseUrl.replace(/\/$/, '') + '/rest/v1/flags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: CFG.supabaseAnonKey, Authorization: 'Bearer ' + CFG.supabaseAnonKey, Prefer: 'return=minimal' },
+      body: JSON.stringify(row)
+    }).then(function (res) { return res.ok; }).catch(function () { return false; });
   }
 
   function updateCount() { $('queueCount').textContent = (store(FLAG_KEY) || []).length; }
