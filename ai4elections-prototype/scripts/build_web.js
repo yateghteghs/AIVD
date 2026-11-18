@@ -25,6 +25,8 @@ let key = (process.env.SUPABASE_ANON_KEY || '').trim();
 function jwtRole(k) {
   try { return JSON.parse(Buffer.from(k.split('.')[1], 'base64url').toString()).role; } catch (e) { return null; }
 }
+// Which code is live: the git commit Vercel built (VERCEL_GIT_COMMIT_SHA), plus the build time.
+const build = ((process.env.VERCEL_GIT_COMMIT_SHA || '').slice(0, 7) || 'local') + ' · ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 const problems = [];
 // Short codes (never values) written into config.js so the site can explain itself.
 const codes = [];
@@ -50,7 +52,7 @@ if (problems.length) {
 }
 fs.writeFileSync(path.join(out, 'config.js'),
   '/* Generated at build time by scripts/build_web.js */\n' +
-  'window.AIVD_CONFIG = ' + JSON.stringify({ supabaseUrl: url, supabaseAnonKey: key, configProblems: codes }, null, 2) + ';\n');
+  'window.AIVD_CONFIG = ' + JSON.stringify({ supabaseUrl: url, supabaseAnonKey: key, configProblems: codes, build: build }, null, 2) + ';\n');
 
 const { meta } = require(path.join(app, 'data', 'provisions.js'));
 console.log(`Built ${files.length + 1} files into dist/ · corpus: ${meta.corpus}${meta.verified ? ' (verified)' : ' (SAMPLE)'} · shared review queue: ${url && key ? 'on' : 'off'}`);
